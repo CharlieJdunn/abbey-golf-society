@@ -451,7 +451,8 @@
   // GOOGLE SHEETS FETCH (GViz JSON)
   // -------------------------
   async function fetchSheetRows(sheetName) {
-    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}`;
+    // headers=1 tells GViz to treat first row as headers (labels)
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&headers=1&sheet=${encodeURIComponent(sheetName)}`;
     const res = await fetch(url, { cache: 'no-store' });
     if (!res.ok) throw new Error(`Failed to fetch ${sheetName} (${res.status})`);
     const text = await res.text();
@@ -462,15 +463,22 @@
     if (start < 0 || end < 0) throw new Error(`Bad GViz response for ${sheetName}`);
     const json = JSON.parse(text.slice(start, end + 1));
 
-    const cols = (json.table?.cols || []).map(c => (c.label || '').trim());
-    const rows = (json.table?.rows || []).map(r => (r.c || []).map(cell => cell ? cell.v : null));
+    let cols = (json.table?.cols || []).map(c => (c.label || '').trim());
+    let rows = (json.table?.rows || []).map(r => (r.c || []).map(cell => cell ? cell.v : null));
+
+    // If labels came back empty (common if headers aren't detected), try using first row as headers.
+    const allBlank = cols.every(c => !c);
+    if (allBlank && rows.length) {
+      cols = rows[0].map(v => String(v ?? '').trim());
+      rows = rows.slice(1);
+    }
 
     // Convert to objects
     const out = [];
     for (const row of rows) {
       const obj = {};
-      for (let i=0; i<cols.length; i++) {
-        const key = cols[i] || `col${i+1}`;
+      for (let i = 0; i < cols.length; i++) {
+        const key = cols[i] || `col${i + 1}`;
         obj[key] = row[i];
       }
       // Ignore fully empty rows
@@ -976,6 +984,11 @@ Open your sheet and edit the tabs: Members / Rounds / Results / Config / Handica
 
     // events
     window.addEventListener('hashchange', showPageFromHash);
+
+    // Some mobile browsers can be flaky with hashchange; force update on nav clicks too.
+    document.querySelectorAll('.navLink').forEach(a => {
+      a.addEventListener('click', () => setTimeout(showPageFromHash, 0));
+    });
     el('searchBox').addEventListener('input', render);
     el('btnReset').addEventListener('click', () => { el('searchBox').value = ''; render(); });
     el('btnAdmin').addEventListener('click', openAdminRedirect);
@@ -985,11 +998,24 @@ Open your sheet and edit the tabs: Members / Rounds / Results / Config / Handica
     try {
       await syncFromGoogleSheets();
     } catch (e) {
-      // keep fallback, but show a helpful console message
       console.warn('Google Sheets sync failed, using local fallback:', e);
       LAST_SOURCE = 'local';
       LAST_SYNC = new Date();
-      // keep DATA as-is
+
+      // Show a visible hint on the Home page if data isn't loading.
+      const home = document.getElementById('pageHome');
+      if (home && !document.getElementById('syncHint')) {
+        const hint = document.createElement('div');
+        hint.id = 'syncHint';
+        hint.className = 'rounded-2xl border bg-amber-50 p-4 text-sm text-amber-900';
+        hint.innerHTML = `
+          <div class="font-semibold">Google Sheets data isn’t loading yet.</div>
+          <div class="mt-1">Fix: In your Google Sheet go to <span class="font-semibold">File → Share</span> and set <span class="font-semibold">General access</span> to <span class="font-semibold">Anyone with the link (Viewer)</span>.</div>
+          <div class="mt-1">If it still doesn’t work for everyone, use <span class="font-semibold">File → Share → Publish to the web</span> (Entire document).</div>
+        `;
+        // Put hint under the hero section
+        home.prepend(hint);
+      }
     }
   }
 
