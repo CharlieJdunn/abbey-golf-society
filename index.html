@@ -3,13 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Abbey Golf Society — MVP</title>
+  <title>Abbey Golf Society</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
-<body class="bg-gradient-to-b from-emerald-50 via-white to-white min-h-screen font-sans">
 
-  <!-- Top Bar -->
+<body class="bg-gradient-to-b from-emerald-50 via-white to-white min-h-screen font-sans">
+  <!-- Header -->
   <div class="sticky top-0 z-20 border-b bg-white/80 backdrop-blur">
     <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
       <a href="#home" class="flex items-center gap-3">
@@ -18,7 +17,7 @@
         </div>
         <div class="leading-tight">
           <div class="font-semibold tracking-tight">Abbey Golf Society</div>
-          <div class="text-xs text-gray-500">MVP · leaderboard, fixtures, results</div>
+          <div class="text-xs text-gray-500">Google Sheets backend · read-only site</div>
         </div>
       </a>
 
@@ -30,11 +29,16 @@
           <a class="navLink px-3 py-2 rounded-2xl border bg-white hover:bg-gray-50 text-sm" href="#members">Members</a>
           <a class="navLink px-3 py-2 rounded-2xl border bg-white hover:bg-gray-50 text-sm" href="#honours">Honours</a>
         </nav>
-        <button id="btnAdmin" class="px-4 py-2 rounded-2xl bg-emerald-600 text-white font-medium shadow hover:bg-emerald-700">Admin</button>
+
+        <!-- Admin is a plain link (works even if JS dies) -->
+        <a id="adminLink"
+           class="px-4 py-2 rounded-2xl bg-emerald-600 text-white font-medium shadow hover:bg-emerald-700"
+           target="_blank" rel="noopener">
+          Admin
+        </a>
       </div>
     </div>
 
-    <!-- Mobile nav -->
     <div class="sm:hidden border-t bg-white/70">
       <div class="max-w-6xl mx-auto px-4 py-2 flex gap-2 overflow-x-auto">
         <a class="navLink px-3 py-2 rounded-2xl border bg-white hover:bg-gray-50 text-sm whitespace-nowrap" href="#home">Home</a>
@@ -47,19 +51,33 @@
   </div>
 
   <main class="max-w-6xl mx-auto px-4 py-8 space-y-10">
+    <!-- Always-visible debug status (so we can see failures without console) -->
+    <section class="rounded-3xl border bg-white shadow p-5">
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <div class="text-sm text-gray-500">Status</div>
+          <div id="statusLine" class="font-semibold">Booting…</div>
+          <div id="statusDetail" class="text-xs text-gray-500 mt-1">—</div>
+        </div>
+        <div class="flex gap-2">
+          <!-- Refresh exists in plain HTML -->
+          <button id="btnRefresh" class="px-4 py-2 rounded-2xl border bg-white hover:bg-gray-50">Refresh</button>
+        </div>
+      </div>
+    </section>
 
-    <!-- HOME PAGE -->
-    <section id="pageHome" class="page space-y-10">
+    <!-- HOME -->
+    <section id="pageHome" class="page space-y-6">
       <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div class="bg-white rounded-3xl shadow p-6 lg:col-span-2 border">
           <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <div class="inline-flex items-center gap-2 rounded-2xl border bg-white px-3 py-1 text-xs font-medium">
                 <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
-                <span id="seasonLabel">Season · Live standings</span>
+                <span id="seasonLabel">Season</span>
               </div>
-              <h1 class="mt-3 text-2xl sm:text-3xl font-semibold tracking-tight">All the society info in one place.</h1>
-              <p class="mt-2 text-sm text-gray-600">Handicap band/adjustment logic is embedded from your spreadsheet (AO–AQ). Admin currently saves to this device only.</p>
+              <h1 class="mt-3 text-2xl sm:text-3xl font-semibold tracking-tight">Society dashboard</h1>
+              <p class="mt-2 text-sm text-gray-600">Live data pulled from Google Sheets.</p>
             </div>
             <div class="flex flex-wrap gap-2">
               <div class="rounded-2xl border bg-white/60 px-3 py-2 shadow-sm text-sm"><span class="text-gray-500">Members:</span> <span id="statMembers" class="font-semibold">—</span></div>
@@ -73,14 +91,20 @@
             <button id="btnReset" class="px-4 py-2 rounded-2xl border bg-white hover:bg-gray-50">Reset</button>
           </div>
 
-          <div class="mt-5 rounded-2xl border bg-gray-50 p-4">
-            <div class="text-sm font-semibold">How handicaps update (from your Excel)</div>
-            <ul class="mt-2 text-sm text-gray-700 list-disc list-inside space-y-1">
-              <li>Band is determined from the player’s <span class="font-mono">current handicap</span> (rounded to nearest whole).</li>
-              <li>Adjustment is looked up by <span class="font-mono">band + Stableford points</span> and applied to handicap (rounded to 1dp).</li>
-              <li>If you edit/remove a round, handicaps are recomputed from season start to stay consistent.</li>
-            </ul>
-            <div class="mt-3 text-xs text-gray-500">Currently we update handicaps only when a round result includes <span class="font-mono">stablefordPoints</span>.</div>
+          <div class="mt-5 bg-white rounded-2xl shadow border overflow-hidden">
+            <table class="w-full text-left">
+              <thead class="bg-emerald-100">
+                <tr class="text-sm">
+                  <th class="p-3 w-10">#</th>
+                  <th class="p-3">Player</th>
+                  <th class="p-3 text-right">Points</th>
+                  <th class="p-3 text-right">Played</th>
+                  <th class="p-3 text-right">Wins</th>
+                  <th class="p-3 text-right">Hcap</th>
+                </tr>
+              </thead>
+              <tbody id="leaderboardBodyHome"></tbody>
+            </table>
           </div>
         </div>
 
@@ -93,50 +117,13 @@
             <div id="upFormat" class="text-gray-700">—</div>
             <div id="upNotes" class="mt-3 text-sm text-gray-600">—</div>
           </div>
-          <div class="mt-4 flex gap-2">
-            <a href="#rounds" class="flex-1 text-center px-4 py-2 rounded-2xl border bg-white hover:bg-gray-50">View rounds</a>
-            <a href="#leaderboard" class="flex-1 text-center px-4 py-2 rounded-2xl bg-emerald-600 text-white hover:bg-emerald-700">Leaderboard</a>
-          </div>
-        </div>
-      </section>
-
-      <section class="space-y-4">
-        <div class="flex items-end justify-between gap-3">
-          <div>
-            <h2 class="text-2xl font-semibold">Leaderboard (Top 10)</h2>
-            <p class="text-sm text-gray-600">Includes automatically updated current handicaps.</p>
-          </div>
-          <a href="#leaderboard" class="text-sm px-4 py-2 rounded-2xl border bg-white hover:bg-gray-50">Open full table</a>
-        </div>
-
-        <div class="bg-white rounded-2xl shadow border overflow-hidden">
-          <table class="w-full text-left">
-            <thead class="bg-emerald-100">
-              <tr class="text-sm">
-                <th class="p-3 w-10">#</th>
-                <th class="p-3">Player</th>
-                <th class="p-3 text-right">Points</th>
-                <th class="p-3 text-right">Played</th>
-                <th class="p-3 text-right">Wins</th>
-                <th class="p-3 text-right">Hcap</th>
-              </tr>
-            </thead>
-            <tbody id="leaderboardBodyHome"></tbody>
-          </table>
         </div>
       </section>
     </section>
 
-    <!-- LEADERBOARD PAGE -->
-    <section id="pageLeaderboard" class="page hidden space-y-6">
-      <div class="flex items-end justify-between gap-3">
-        <div>
-          <h2 class="text-2xl font-semibold">Leaderboard</h2>
-          <p class="text-sm text-gray-600">Points table + current handicap (auto-updated).</p>
-        </div>
-        <div class="text-xs px-3 py-1 rounded-2xl bg-gray-100 border">Points Table</div>
-      </div>
-
+    <!-- LEADERBOARD -->
+    <section id="pageLeaderboard" class="page hidden space-y-4">
+      <h2 class="text-2xl font-semibold">Leaderboard</h2>
       <div class="bg-white rounded-2xl shadow border overflow-hidden">
         <table class="w-full text-left">
           <thead class="bg-emerald-100">
@@ -153,899 +140,318 @@
           <tbody id="leaderboardBody"></tbody>
         </table>
       </div>
-
-      <div class="text-xs text-gray-500">Handicap adjustments are applied when a result has <span class="font-mono">stablefordPoints</span>.</div>
     </section>
 
-    <!-- ROUNDS PAGE -->
+    <!-- ROUNDS -->
     <section id="pageRounds" class="page hidden space-y-4">
-      <div>
-        <h2 class="text-2xl font-semibold">Rounds</h2>
-        <p class="text-sm text-gray-600">Snapshots + top 3. Edit/add in Admin → Rounds.</p>
-      </div>
+      <h2 class="text-2xl font-semibold">Rounds</h2>
       <div id="roundsGrid" class="grid md:grid-cols-2 gap-4"></div>
     </section>
 
-    <!-- MEMBERS PAGE -->
+    <!-- MEMBERS -->
     <section id="pageMembers" class="page hidden space-y-4">
-      <div>
-        <h2 class="text-2xl font-semibold">Members</h2>
-        <p class="text-sm text-gray-600">Roster + current handicap (auto-updated). Edit in Admin → Members.</p>
-      </div>
+      <h2 class="text-2xl font-semibold">Members</h2>
       <div id="membersGrid" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
     </section>
 
-    <!-- HONOURS PAGE -->
+    <!-- HONOURS -->
     <section id="pageHonours" class="page hidden space-y-4">
-      <div>
-        <h2 class="text-2xl font-semibold">Honours Board</h2>
-        <p class="text-sm text-gray-600">League winners, majors, fun awards (dummy data).</p>
-      </div>
+      <h2 class="text-2xl font-semibold">Honours</h2>
       <div class="bg-white rounded-2xl shadow border p-6 grid md:grid-cols-3 gap-6">
-        <div>
-          <h3 class="font-bold mb-2">Previous League Winners</h3>
-          <ul id="honoursLeague" class="list-disc list-inside text-gray-700"></ul>
-        </div>
-        <div>
-          <h3 class="font-bold mb-2">Major Champions</h3>
-          <ul id="honoursMajors" class="list-disc list-inside text-gray-700"></ul>
-        </div>
-        <div>
-          <h3 class="font-bold mb-2">Fun Awards</h3>
-          <ul id="honoursFun" class="list-disc list-inside text-gray-700"></ul>
-        </div>
+        <div><h3 class="font-bold mb-2">League Winners</h3><ul id="honoursLeague" class="list-disc list-inside text-gray-700"></ul></div>
+        <div><h3 class="font-bold mb-2">Majors</h3><ul id="honoursMajors" class="list-disc list-inside text-gray-700"></ul></div>
+        <div><h3 class="font-bold mb-2">Fun Awards</h3><ul id="honoursFun" class="list-disc list-inside text-gray-700"></ul></div>
       </div>
     </section>
-
-    <footer class="text-center text-gray-500 py-6">
-      Abbey Golf Society MVP • Admin edits are stored locally on this device (for now).
-    </footer>
-
   </main>
 
-  <!-- Admin Modal -->
-  <div id="adminModal" class="fixed inset-0 hidden items-center justify-center bg-black/40 p-4">
-    <div class="w-full max-w-3xl bg-white rounded-3xl shadow-xl border overflow-hidden">
-      <div class="px-6 py-4 border-b flex items-center justify-between">
-        <div>
-          <div class="text-sm text-gray-500">Admin</div>
-          <div class="text-lg font-semibold">Edit content + scoring</div>
-        </div>
-        <button id="btnCloseAdmin" class="px-3 py-2 rounded-2xl border hover:bg-gray-50">Close</button>
-      </div>
+  <script>
+    // ===== CONFIG =====
+    const SHEET_ID = "1jFLU54LLj3RMcdWIeKOMz8UO8HuWbAXm8ZzhRGeFjUk";
+    const SHEET_URL = (tab) => `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}`;
 
-      <div class="px-6 pt-4">
-        <div class="flex flex-wrap gap-2">
-          <button class="tabBtn px-3 py-2 rounded-2xl border bg-gray-50" data-tab="tabUpcoming">Upcoming</button>
-          <button class="tabBtn px-3 py-2 rounded-2xl border" data-tab="tabMembers">Members</button>
-          <button class="tabBtn px-3 py-2 rounded-2xl border" data-tab="tabRounds">Rounds</button>
-          <button class="tabBtn px-3 py-2 rounded-2xl border" data-tab="tabScoring">Scoring</button>
-          <button class="tabBtn px-3 py-2 rounded-2xl border" data-tab="tabExport">Import/Export</button>
-        </div>
-      </div>
+    // Admin link is plain HTML
+    document.getElementById("adminLink").href = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit?usp=sharing`;
 
-      <div class="p-6">
-        <div class="adminTab" id="tabUpcoming">
-          <div class="grid md:grid-cols-2 gap-4">
-            <div>
-              <label class="text-sm text-gray-600">Title</label>
-              <input id="f_up_title" class="mt-1 w-full rounded-2xl border px-4 py-2" />
-            </div>
-            <div>
-              <label class="text-sm text-gray-600">Date</label>
-              <input id="f_up_date" class="mt-1 w-full rounded-2xl border px-4 py-2" />
-            </div>
-            <div>
-              <label class="text-sm text-gray-600">Time</label>
-              <input id="f_up_time" class="mt-1 w-full rounded-2xl border px-4 py-2" />
-            </div>
-            <div>
-              <label class="text-sm text-gray-600">Course</label>
-              <input id="f_up_course" class="mt-1 w-full rounded-2xl border px-4 py-2" />
-            </div>
-            <div>
-              <label class="text-sm text-gray-600">Location</label>
-              <input id="f_up_location" class="mt-1 w-full rounded-2xl border px-4 py-2" />
-            </div>
-            <div>
-              <label class="text-sm text-gray-600">Format</label>
-              <input id="f_up_format" class="mt-1 w-full rounded-2xl border px-4 py-2" />
-            </div>
-            <div class="md:col-span-2">
-              <label class="text-sm text-gray-600">Notes</label>
-              <textarea id="f_up_notes" class="mt-1 w-full rounded-2xl border px-4 py-2" rows="3"></textarea>
-            </div>
-          </div>
-          <div class="mt-4 flex justify-end">
-            <button id="saveUpcoming" class="px-4 py-2 rounded-2xl bg-emerald-600 text-white font-medium hover:bg-emerald-700">Save Upcoming</button>
-          </div>
-        </div>
+    const $ = (id) => document.getElementById(id);
 
-        <div class="adminTab hidden" id="tabMembers">
-          <div class="text-sm text-gray-600 mb-3">Edit members JSON. Use <span class="font-mono">startHandicapIndex</span> as the season starting point. Current handicap is auto-calculated from rounds.</div>
-          <textarea id="f_members_json" class="w-full rounded-2xl border px-4 py-2 font-mono text-xs" rows="12"></textarea>
-          <div class="mt-4 flex items-center justify-between gap-3">
-            <div class="text-xs text-gray-500">Tip: keep handicap values as numbers (e.g., 12.4).</div>
-            <button id="saveMembers" class="px-4 py-2 rounded-2xl bg-emerald-600 text-white font-medium hover:bg-emerald-700">Save Members</button>
-          </div>
-        </div>
+    function setStatus(line, detail="") {
+      $("statusLine").textContent = line;
+      $("statusDetail").textContent = detail || "—";
+    }
 
-        <div class="adminTab hidden" id="tabRounds">
-          <div class="text-sm text-gray-600 mb-3">Edit rounds JSON. For handicap updates, include <span class="font-mono">stablefordPoints</span> per player result.</div>
-          <textarea id="f_rounds_json" class="w-full rounded-2xl border px-4 py-2 font-mono text-xs" rows="12"></textarea>
-          <div class="mt-4 flex items-center justify-between gap-3">
-            <div class="text-xs text-gray-500">Each round: id, date (prefer ISO like 2026-02-15), course, format, results[{name, position, stablefordPoints}]</div>
-            <button id="saveRounds" class="px-4 py-2 rounded-2xl bg-emerald-600 text-white font-medium hover:bg-emerald-700">Save Rounds</button>
-          </div>
-        </div>
+    // ===== CSV parser (simple + robust enough for our sheets) =====
+    function parseCSV(text) {
+      const rows = [];
+      let row = [], cur = "", inQuotes = false;
 
-        <div class="adminTab hidden" id="tabScoring">
-          <div class="grid md:grid-cols-2 gap-4">
-            <div>
-              <label class="text-sm text-gray-600">League points for finishing positions (JSON array)</label>
-              <textarea id="f_points_positions" class="mt-1 w-full rounded-2xl border px-4 py-2 font-mono text-xs" rows="6"></textarea>
-              <div class="text-xs text-gray-500 mt-2">Example: [20,16,14,12,10,8,6,4,2,1]</div>
-            </div>
-            <div>
-              <label class="text-sm text-gray-600">Win bonus (points)</label>
-              <input id="f_points_winbonus" type="number" class="mt-1 w-full rounded-2xl border px-4 py-2" />
-              <label class="text-sm text-gray-600 mt-3 block">Participation points</label>
-              <input id="f_points_participation" type="number" class="mt-1 w-full rounded-2xl border px-4 py-2" />
-              <label class="text-sm text-gray-600 mt-3 block">Top-3 bonus (per top-3 finish)</label>
-              <input id="f_points_top3" type="number" class="mt-1 w-full rounded-2xl border px-4 py-2" />
-            </div>
-          </div>
-          <div class="mt-4 flex justify-end">
-            <button id="saveScoring" class="px-4 py-2 rounded-2xl bg-emerald-600 text-white font-medium hover:bg-emerald-700">Save Scoring</button>
-          </div>
+      for (let i=0; i<text.length; i++) {
+        const ch = text[i];
+        const next = text[i+1];
 
-          <div class="mt-6 rounded-2xl border bg-gray-50 p-4">
-            <div class="font-semibold">Handicap logic</div>
-            <p class="mt-2 text-sm text-gray-700">Handicap adjustments are embedded from your Excel AO–AQ table and applied to a player’s current handicap when a Stableford score is entered.</p>
-          </div>
-        </div>
+        if (ch === '"' && inQuotes && next === '"') { cur += '"'; i++; continue; }
+        if (ch === '"') { inQuotes = !inQuotes; continue; }
 
-        <div class="adminTab hidden" id="tabExport">
-          <div class="rounded-2xl border bg-gray-50 p-4">
-            <div class="font-semibold">On-device storage (MVP)</div>
-            <p class="mt-1 text-sm text-gray-700">Admin saves to <span class="font-mono">localStorage</span> — edits only affect the device you’re editing on. Next step: shared storage (Google Sheets / Supabase / Firebase / simple API).</p>
-          </div>
+        if (!inQuotes && (ch === ",")) { row.push(cur); cur = ""; continue; }
+        if (!inQuotes && (ch === "\n")) { row.push(cur); rows.push(row); row = []; cur = ""; continue; }
 
-          <div class="mt-4 grid md:grid-cols-2 gap-4">
-            <div>
-              <div class="font-semibold">Export</div>
-              <button id="btnExport" class="mt-2 px-4 py-2 rounded-2xl border bg-white hover:bg-gray-50">Generate Export JSON</button>
-              <textarea id="exportBox" class="mt-2 w-full rounded-2xl border px-4 py-2 font-mono text-xs" rows="10" placeholder="Export will appear here…"></textarea>
-            </div>
-            <div>
-              <div class="font-semibold">Import</div>
-              <textarea id="importBox" class="mt-2 w-full rounded-2xl border px-4 py-2 font-mono text-xs" rows="10" placeholder="Paste JSON here…"></textarea>
-              <button id="btnImport" class="mt-2 px-4 py-2 rounded-2xl bg-emerald-600 text-white font-medium hover:bg-emerald-700">Import Now</button>
-            </div>
-          </div>
-        </div>
+        if (ch !== "\r") cur += ch;
+      }
+      row.push(cur);
+      rows.push(row);
 
-      </div>
+      // trim empty trailing rows
+      return rows.filter(r => r.some(c => String(c).trim() !== ""));
+    }
 
-      <div class="px-6 py-4 border-t flex items-center justify-between bg-white">
-        <button id="btnFactoryReset" class="px-4 py-2 rounded-2xl border hover:bg-gray-50">Factory reset</button>
-        <div class="text-xs text-gray-500">MVP admin passcode: <span class="font-mono">abbey</span></div>
-      </div>
+    function toObjects(rows) {
+      if (!rows.length) return [];
+      const headers = rows[0].map(h => String(h).trim());
+      return rows.slice(1).map(r => {
+        const o = {};
+        headers.forEach((h, i) => o[h] = r[i] ?? "");
+        return o;
+      }).filter(o => Object.values(o).some(v => String(v).trim() !== ""));
+    }
 
-    </div>
-  </div>
+    async function fetchTab(tab) {
+      const res = await fetch(SHEET_URL(tab), { cache: "no-store" });
+      if (!res.ok) throw new Error(`${tab} fetch failed (${res.status})`);
+      const text = await res.text();
+      return toObjects(parseCSV(text));
+    }
 
-<script>
-  // --- Debug helper (shows JS errors on the page) ---
-  (function(){
-    function showErr(msg){
-      try {
-        let box = document.getElementById('jsErrorBox');
-        if(!box){
-          box = document.createElement('div');
-          box.id = 'jsErrorBox';
-          box.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:99999;background:#fff3cd;border:1px solid #ffe69c;border-radius:16px;padding:12px;font:12px/1.4 system-ui;color:#664d03;box-shadow:0 8px 24px rgba(0,0,0,.12)';
-          box.innerHTML = '<div style="font-weight:700">App error (tap to close)</div><div id="jsErrorMsg" style="margin-top:6px;white-space:pre-wrap"></div>';
-          box.addEventListener('click', ()=>box.remove());
-          document.body.appendChild(box);
+    // ===== handicap rules =====
+    let adjLookup = new Map(); // key: band:score -> adjustment
+
+    function round1(n){ return Math.round((Number(n)+Number.EPSILON)*10)/10; }
+    function bandFromHandicap(h) {
+      const x = Math.round(Number(h) || 0);
+      if (x >= 29) return 4;
+      if (x >= 20) return 3;
+      if (x >= 11) return 2;
+      return 1;
+    }
+    function getAdj(h, pts) {
+      const b = bandFromHandicap(h);
+      const s = Math.trunc(Number(pts));
+      const k = `${b}:${s}`;
+      const a = adjLookup.get(k);
+      return { band: b, adj: (typeof a === "number" ? a : 0) };
+    }
+
+    // ===== routing =====
+    const ROUTES = { home:"pageHome", leaderboard:"pageLeaderboard", rounds:"pageRounds", members:"pageMembers", honours:"pageHonours" };
+    function showPage() {
+      const hash = (location.hash || "#home").slice(1).toLowerCase();
+      const pageId = ROUTES[hash] || ROUTES.home;
+      document.querySelectorAll(".page").forEach(p => p.classList.add("hidden"));
+      $(pageId).classList.remove("hidden");
+    }
+
+    // ===== render =====
+    let DATA = { members:[], rounds:[], results:[], honours:[], config:[], rules:[] };
+
+    function computeCurrentHandicaps() {
+      const startMap = new Map(DATA.members.map(m => [m.name, Number(m.startHandicapIndex || 0)]));
+      const curMap = new Map(startMap);
+
+      const roundsById = new Map(DATA.rounds.map(r => [r.id, r]));
+      const resultsByRound = new Map();
+      for (const rr of DATA.results) {
+        const rid = rr.roundId;
+        if (!resultsByRound.has(rid)) resultsByRound.set(rid, []);
+        resultsByRound.get(rid).push(rr);
+      }
+
+      const sortedRounds = [...DATA.rounds].sort((a,b) => new Date(a.date) - new Date(b.date));
+      for (const r of sortedRounds) {
+        const res = resultsByRound.get(r.id) || [];
+        for (const x of res) {
+          if (!curMap.has(x.name)) continue;
+          if (x.stablefordPoints === "" || x.stablefordPoints == null) continue;
+          const cur = curMap.get(x.name);
+          const { adj } = getAdj(cur, x.stablefordPoints);
+          curMap.set(x.name, Math.max(0, round1(cur + adj)));
         }
-        document.getElementById('jsErrorMsg').textContent = String(msg);
-      } catch {}
-    }
-    window.addEventListener('error', (e)=>showErr(e.message || e.error || 'Unknown error'));
-    window.addEventListener('unhandledrejection', (e)=>showErr(e.reason?.message || e.reason || 'Unhandled promise rejection'));
-    window.__showErr = showErr;
-  })();
-
-  /**
-   * Abbey Golf Society — Google Sheets (Option A) backend
-   *
-   * This page will READ data from your public Google Sheet.
-   * Admin edits happen in Google Sheets, not here.
-   *
-   * If Sheets is unavailable, it falls back to localStorage DEFAULT_DATA.
-   */
-
-  // -------------------------
-  // GOOGLE SHEETS CONFIG
-  // -------------------------
-  const SHEET_ID = '1jFLU54LLj3RMcdWIeKOMz8UO8HuWbAXm8ZzhRGeFjUk';
-  const SHEET_TABS = ['Members','Rounds','Results','Honours','Config','HandicapRules'];
-
-  // If your sheet is shared "Anyone with link -> Viewer", this should work.
-  // If Google blocks it, publish the sheet:
-  // File -> Share -> Publish to the web (select "Entire document")
-
-  // -------------------------
-  // HANDICAP ADJUSTMENTS
-  // (We will override from HandicapRules sheet if present)
-  // -------------------------
-  const HANDICAP_ADJUSTMENTS_DEFAULT = [[4,50,-5.0],[4,49,-5.0],[4,48,-5.0],[4,47,-5.0],[4,46,-5.0],[4,45,-5.0],[4,44,-5.0],[4,43,-5.0],[4,42,-5.0],[4,40,-5.0],[4,39,-3.0],[4,38,-3.0],[4,37,-3.0],[4,36,-3.0],[4,35,-2.0],[4,34,-1.0],[4,33,-0.9],[4,32,-0.8],[4,31,-0.7],[4,30,-0.6],[4,29,-0.3],[4,28,-0.3],[4,27,-0.3],[4,26,0.3],[4,25,0.3],[4,24,0.3],[4,23,0.3],[4,22,0.5],[4,21,0.5],[4,20,1.0],[4,19,1.0],[4,18,1.0],[4,17,1.0],[4,16,1.0],[4,15,1.0],[4,14,1.0],[4,13,1.0],[4,12,1.0],[4,11,1.0],[4,10,1.0],[4,9,1.0],[4,8,1.0],[4,7,1.0],[4,6,1.0],[4,5,1.0],[4,4,1.0],[4,3,1.0],[4,2,1.0],[4,1,1.0],
-    [3,50,-3.0],[3,49,-3.0],[3,48,-3.0],[3,47,-3.0],[3,46,-3.0],[3,45,-3.0],[3,44,-3.0],[3,43,-3.0],[3,42,-3.0],[3,41,-3.0],[3,40,-3.0],[3,39,-2.0],[3,38,-2.0],[3,37,-2.0],[3,36,-2.0],[3,35,-0.8],[3,34,-0.7],[3,33,-0.6],[3,32,-0.5],[3,31,-0.4],[3,30,-0.3],[3,29,0.3],[3,28,0.3],[3,27,0.3],[3,26,0.5],[3,25,0.5],[3,24,0.5],[3,23,0.5],[3,22,0.7],[3,21,0.7],[3,20,1.3],[3,19,1.3],[3,18,1.3],[3,17,1.3],[3,16,1.3],[3,15,1.3],[3,14,1.3],[3,13,1.3],[3,12,1.3],[3,11,1.3],[3,10,1.3],[3,9,1.3],[3,8,1.3],[3,7,1.3],[3,6,1.3],[3,5,1.3],[3,4,1.3],[3,3,1.3],[3,2,1.3],[3,1,1.3],
-    [2,50,-2.0],[2,49,-2.0],[2,48,-2.0],[2,47,-2.0],[2,46,-2.0],[2,45,-2.0],[2,44,-2.0],[2,43,-2.0],[2,42,-2.0],[2,41,-2.0],[2,40,-2.0],[2,39,-1.5],[2,38,-1.5],[2,37,-1.5],[2,36,-1.5],[2,35,-0.6],[2,34,-0.5],[2,33,-0.4],[2,32,-0.3],[2,31,-0.2],[2,30,-0.1],[2,29,0.2],[2,28,0.2],[2,27,0.2],[2,26,0.4],[2,25,0.4],[2,24,0.4],[2,23,0.4],[2,22,0.6],[2,21,0.6],[2,20,1.0],[2,19,1.0],[2,18,1.0],[2,17,1.0],[2,16,1.0],[2,15,1.0],[2,14,1.0],[2,13,1.0],[2,12,1.0],[2,11,1.0],[2,10,1.0],[2,9,1.0],[2,8,1.0],[2,7,1.0],[2,6,1.0],[2,5,1.0],[2,4,1.0],[2,3,1.0],[2,2,1.0],[2,1,1.0],
-    [1,50,-1.5],[1,49,-1.5],[1,48,-1.5],[1,47,-1.5],[1,46,-1.5],[1,45,-1.5],[1,44,-1.5],[1,43,-1.5],[1,42,-1.5],[1,41,-1.5],[1,40,-1.5],[1,39,-1.0],[1,38,-1.0],[1,37,-1.0],[1,36,-1.0],[1,35,-0.5],[1,34,-0.4],[1,33,-0.3],[1,32,-0.2],[1,31,-0.1],[1,30,0.0],[1,29,0.1],[1,28,0.1],[1,27,0.1],[1,26,0.3],[1,25,0.3],[1,24,0.3],[1,23,0.3],[1,22,0.5],[1,21,0.5],[1,20,0.8],[1,19,0.8],[1,18,0.8],[1,17,0.8],[1,16,0.8],[1,15,0.8],[1,14,0.8],[1,13,0.8],[1,12,0.8],[1,11,0.8],[1,10,0.8],[1,9,0.8],[1,8,0.8],[1,7,0.8],[1,6,0.8],[1,5,0.8],[1,4,0.8],[1,3,0.8],[1,2,0.8]];
-
-  let HANDICAP_ADJ_LOOKUP = buildAdjLookup(HANDICAP_ADJUSTMENTS_DEFAULT);
-
-  function buildAdjLookup(triples) {
-    const m = new Map();
-    for (const t of (triples || [])) {
-      const band = Number(t[0]);
-      const score = Number(t[1]);
-      const adj = Number(t[2]);
-      if (!Number.isFinite(band) || !Number.isFinite(score) || !Number.isFinite(adj)) continue;
-      m.set(String(band) + ':' + String(score), adj);
-    }
-    return m;
-  }
-
-  function round1dp(n) {
-    return Math.round((Number(n) + Number.EPSILON) * 10) / 10;
-  }
-
-  // Updated 4-band ranges per your image:
-  // Band 4: 36–29, Band 3: 28–20, Band 2: 19–11, Band 1: 10–0
-  function handicapBand(handicapIndex) {
-    const h = Math.round(Number(handicapIndex) || 0);
-    if (h >= 29) return 4;
-    if (h >= 20) return 3;
-    if (h >= 11) return 2;
-    return 1;
-  }
-
-  function handicapAdjustment(currentHandicap, stablefordPoints) {
-    const band = handicapBand(currentHandicap);
-    const score = Number(stablefordPoints);
-    if (!Number.isFinite(score)) return { band, adj: 0 };
-    const key = String(band) + ':' + String(Math.trunc(score));
-    const adj = HANDICAP_ADJ_LOOKUP.get(key);
-    return { band, adj: (typeof adj === 'number' ? adj : 0) };
-  }
-
-  // -------------------------
-  // FALLBACK LOCAL DATA
-  // -------------------------
-  const STORAGE_KEY = 'abbey_golf_society_mvp_v3';
-
-  const DEFAULT_DATA = {
-    seasonLabel: 'Season 2026 · Live standings',
-    upcoming: {
-      title: 'Next Round',
-      date: 'TBC',
-      time: 'TBC',
-      course: 'TBC',
-      location: 'TBC',
-      format: 'Stableford',
-      notes: 'Update in Google Sheets → Config tab.'
-    },
-    members: [],
-    rounds: [],
-    honours: { leagueWinners: [], majorChampions: [], funAwards: [] },
-    scoring: {
-      positionPoints: [20,16,14,12,10,8,6,4,2,1],
-      winBonus: 2,
-      participation: 2,
-      top3Bonus: 1,
-    }
-  };
-
-  function loadDataFallback() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return structuredClone(DEFAULT_DATA);
-      const parsed = JSON.parse(raw);
-      return { ...structuredClone(DEFAULT_DATA), ...parsed };
-    } catch {
-      return structuredClone(DEFAULT_DATA);
-    }
-  }
-
-  function saveDataFallback(data) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  }
-
-  let DATA = loadDataFallback();
-  let LAST_SYNC = null;
-  let LAST_SOURCE = 'local';
-
-  // -------------------------
-  // GOOGLE SHEETS FETCH (GViz JSON)
-  // -------------------------
-  async function fetchSheetRows(sheetName) {
-    // headers=1 tells GViz to treat first row as headers (labels)
-    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&headers=1&sheet=${encodeURIComponent(sheetName)}`;
-    const res = await fetch(url, { cache: 'no-store' });
-    if (!res.ok) throw new Error(`Failed to fetch ${sheetName} (${res.status})`);
-    const text = await res.text();
-
-    // GViz wraps JSON like: google.visualization.Query.setResponse({...});
-    const start = text.indexOf('{');
-    const end = text.lastIndexOf('}');
-    if (start < 0 || end < 0) throw new Error(`Bad GViz response for ${sheetName}`);
-    const json = JSON.parse(text.slice(start, end + 1));
-
-    let cols = (json.table?.cols || []).map(c => (c.label || '').trim());
-    let rows = (json.table?.rows || []).map(r => (r.c || []).map(cell => cell ? cell.v : null));
-
-    // If labels came back empty (common if headers aren't detected), try using first row as headers.
-    const allBlank = cols.every(c => !c);
-    if (allBlank && rows.length) {
-      cols = rows[0].map(v => String(v ?? '').trim());
-      rows = rows.slice(1);
-    }
-
-    // Convert to objects
-    const out = [];
-    for (const row of rows) {
-      const obj = {};
-      for (let i = 0; i < cols.length; i++) {
-        const key = cols[i] || `col${i + 1}`;
-        obj[key] = row[i];
       }
-      // Ignore fully empty rows
-      if (Object.values(obj).every(v => v == null || String(v).trim() === '')) continue;
-      out.push(obj);
-    }
-    return out;
-  }
-
-  function asNumber(x) {
-    if (x == null || x === '') return null;
-    const n = Number(x);
-    return Number.isFinite(n) ? n : null;
-  }
-
-  function asText(x) {
-    if (x == null) return '';
-    return String(x).trim();
-  }
-
-  function parseConfig(rows) {
-    // Expect columns: key, value
-    const cfg = {};
-    for (const r of (rows || [])) {
-      const k = asText(r.key || r.Key || r.KEY);
-      const v = r.value ?? r.Value ?? r.VALUE;
-      if (!k) continue;
-      cfg[k] = v;
-    }
-    return cfg;
-  }
-
-  function buildDataFromSheets({ membersRows, roundsRows, resultsRows, honoursRows, configRows, handicapRulesRows }) {
-    const data = structuredClone(DEFAULT_DATA);
-
-    // Handicap rules override (if sheet exists)
-    if (Array.isArray(handicapRulesRows) && handicapRulesRows.length) {
-      // Expect columns: band, score, adjustment
-      const triples = handicapRulesRows.map(r => [asNumber(r.band ?? r.Band), asNumber(r.score ?? r.Score), asNumber(r.adjustment ?? r.Adjustment ?? r.adj ?? r.Adj)]);
-      const cleaned = triples.filter(t => t.every(v => typeof v === 'number' && Number.isFinite(v)));
-      if (cleaned.length) {
-        HANDICAP_ADJ_LOOKUP = buildAdjLookup(cleaned);
-      }
+      return curMap;
     }
 
-    // Members
-    data.members = (membersRows || []).map(r => ({
-      name: asText(r.name ?? r.Name),
-      role: asText(r.role ?? r.Role) || 'Member',
-      startHandicapIndex: asNumber(r.startHandicapIndex ?? r.startHandicap ?? r.Handicap ?? r.handicapIndex) ?? 0,
-    })).filter(m => m.name);
-
-    // Rounds
-    const rounds = (roundsRows || []).map(r => ({
-      id: asText(r.id ?? r.ID ?? r.roundId ?? r.RoundId),
-      date: asText(r.date ?? r.Date),
-      course: asText(r.course ?? r.Course),
-      format: asText(r.format ?? r.Format) || 'Stableford',
-      winner: asText(r.winner ?? r.Winner),
-      best: asText(r.best ?? r.Best),
-      results: [],
-    })).filter(r => r.id);
-
-    const roundById = new Map(rounds.map(r => [r.id, r]));
-
-    // Results
-    for (const rr of (resultsRows || [])) {
-      const roundId = asText(rr.roundId ?? rr.RoundId ?? rr.round ?? rr.Round);
-      const name = asText(rr.name ?? rr.Name);
-      if (!roundId || !name) continue;
-      const r = roundById.get(roundId);
-      if (!r) continue;
-      r.results.push({
-        name,
-        position: asNumber(rr.position ?? rr.Position),
-        stablefordPoints: asNumber(rr.stablefordPoints ?? rr.StablefordPoints ?? rr.points ?? rr.Points),
-      });
-    }
-
-    data.rounds = rounds;
-
-    // Honours
-    const honours = { leagueWinners: [], majorChampions: [], funAwards: [] };
-    for (const h of (honoursRows || [])) {
-      const type = asText(h.type ?? h.Type).toLowerCase();
-      const year = asNumber(h.year ?? h.Year);
-      const title = asText(h.title ?? h.Title);
-      const award = asText(h.award ?? h.Award);
-      const winner = asText(h.winner ?? h.Winner);
-      if (!type || !winner) continue;
-      if (type === 'league') honours.leagueWinners.push({ year, winner });
-      else if (type === 'major') honours.majorChampions.push({ title, year, winner });
-      else if (type === 'fun') honours.funAwards.push({ award: award || title || 'Award', year, winner });
-    }
-    data.honours = honours;
-
-    // Config
-    const cfg = parseConfig(configRows || []);
-    if (cfg['seasonLabel']) data.seasonLabel = asText(cfg['seasonLabel']);
-
-    data.upcoming = {
-      title: asText(cfg['upcoming.title'] ?? cfg['upcomingTitle'] ?? data.upcoming.title),
-      date: asText(cfg['upcoming.date'] ?? cfg['upcomingDate'] ?? data.upcoming.date),
-      time: asText(cfg['upcoming.time'] ?? cfg['upcomingTime'] ?? data.upcoming.time),
-      course: asText(cfg['upcoming.course'] ?? cfg['upcomingCourse'] ?? data.upcoming.course),
-      location: asText(cfg['upcoming.location'] ?? cfg['upcomingLocation'] ?? data.upcoming.location),
-      format: asText(cfg['upcoming.format'] ?? cfg['upcomingFormat'] ?? data.upcoming.format),
-      notes: asText(cfg['upcoming.notes'] ?? cfg['upcomingNotes'] ?? data.upcoming.notes),
-    };
-
-    // Scoring config (optional)
-    if (cfg['scoring.positionPoints']) {
-      try {
-        const arr = JSON.parse(asText(cfg['scoring.positionPoints']));
-        if (Array.isArray(arr)) data.scoring.positionPoints = arr.map(n => Number(n) || 0);
-      } catch {}
-    }
-    if (cfg['scoring.winBonus'] != null) data.scoring.winBonus = Number(cfg['scoring.winBonus'] || 0);
-    if (cfg['scoring.participation'] != null) data.scoring.participation = Number(cfg['scoring.participation'] || 0);
-    if (cfg['scoring.top3Bonus'] != null) data.scoring.top3Bonus = Number(cfg['scoring.top3Bonus'] || 0);
-
-    return data;
-  }
-
-  async function syncFromGoogleSheets() {
-    const [membersRows, roundsRows, resultsRows, honoursRows, configRows, handicapRulesRows] = await Promise.all([
-      fetchSheetRows('Members'),
-      fetchSheetRows('Rounds'),
-      fetchSheetRows('Results'),
-      fetchSheetRows('Honours'),
-      fetchSheetRows('Config'),
-      fetchSheetRows('HandicapRules'),
-    ]);
-
-    const next = buildDataFromSheets({ membersRows, roundsRows, resultsRows, honoursRows, configRows, handicapRulesRows });
-    DATA = next;
-    saveDataFallback(next); // cache for offline
-    LAST_SYNC = new Date();
-    LAST_SOURCE = 'google';
-  }
-
-  // -------------------------
-  // SCORING + HANDICAP HISTORY
-  // -------------------------
-  function parseDate(d) {
-    if (!d) return new Date(0);
-    const dt = new Date(String(d).trim());
-    return isNaN(dt) ? new Date(0) : dt;
-  }
-
-  function handicapHistoryForPlayer(data, playerName) {
-    const member = (data.members || []).find(m => m.name === playerName);
-    const start = Number(member?.startHandicapIndex ?? 0);
-
-    let cur = start;
-    const points = [{ label: 'Start', date: null, hcap: round1dp(cur), band: handicapBand(cur), adj: 0 }];
-
-    const roundsSorted = (data.rounds || []).slice().sort((a,b) => parseDate(a.date) - parseDate(b.date));
-    for (const r of roundsSorted) {
-      const res = (r.results || []).find(x => x.name === playerName);
-      if (!res) continue;
-      if (res.stablefordPoints == null || res.stablefordPoints === '') continue;
-      const out = handicapAdjustment(cur, res.stablefordPoints);
-      cur = Math.max(0, round1dp(cur + out.adj));
-      points.push({
-        label: r.date || r.id,
-        date: r.date,
-        hcap: cur,
-        band: out.band,
-        adj: out.adj,
-        stablefordPoints: res.stablefordPoints,
-        roundId: r.id,
-        course: r.course,
-      });
-    }
-    return points;
-  }
-
-  function recomputeCurrentHandicaps(data) {
-    const map = new Map();
-    for (const m of (data.members || [])) {
-      const hist = handicapHistoryForPlayer(data, m.name);
-      map.set(m.name, hist[hist.length - 1]?.hcap ?? m.startHandicapIndex ?? 0);
-    }
-    return map;
-  }
-
-  function computeLeagueTable(data, search) {
-    const currentHcap = recomputeCurrentHandicaps(data);
-    const agg = new Map();
-
-    for (const m of (data.members || [])) {
-      agg.set(m.name, {
+    function computeLeague() {
+      const currentHcap = computeCurrentHandicaps();
+      const rows = DATA.members.map(m => ({
         name: m.name,
-        role: m.role,
+        role: m.role || "Member",
+        points: 0,
         played: 0,
         wins: 0,
         top3: 0,
-        points: 0,
-        handicapIndex: currentHcap.get(m.name) ?? m.startHandicapIndex ?? null,
-      });
-    }
+        handicapIndex: currentHcap.get(m.name) ?? Number(m.startHandicapIndex || 0)
+      }));
 
-    for (const r of (data.rounds || [])) {
-      if (!Array.isArray(r.results)) continue;
-      for (const res of r.results) {
-        if (!agg.has(res.name)) continue;
-        const row = agg.get(res.name);
+      const rowMap = new Map(rows.map(r => [r.name, r]));
+
+      // basic position points (can be moved to Config later)
+      const positionPoints = [20,16,14,12,10,8,6,4,2,1];
+      const winBonus = 2, participation = 2, top3Bonus = 1;
+
+      for (const rr of DATA.results) {
+        const row = rowMap.get(rr.name);
+        if (!row) continue;
         row.played += 1;
+        row.points += participation;
 
-        row.points += Number(data.scoring.participation || 0);
-
-        const pos = Number(res.position);
+        const pos = Number(rr.position);
         if (Number.isFinite(pos) && pos >= 1) {
-          const idx = pos - 1;
-          const positionPoints = Array.isArray(data.scoring.positionPoints) ? data.scoring.positionPoints : [];
-          row.points += Number(positionPoints[idx] || 0);
-          if (pos === 1) {
-            row.wins += 1;
-            row.points += Number(data.scoring.winBonus || 0);
-          }
-          if (pos <= 3) {
-            row.top3 += 1;
-            row.points += Number(data.scoring.top3Bonus || 0);
-          }
+          row.points += Number(positionPoints[pos-1] || 0);
+          if (pos === 1) { row.wins += 1; row.points += winBonus; }
+          if (pos <= 3) { row.top3 += 1; row.points += top3Bonus; }
         }
       }
+
+      // search
+      const q = String($("searchBox").value || "").trim().toLowerCase();
+      const filtered = q ? rows.filter(r => r.name.toLowerCase().includes(q)) : rows;
+
+      filtered.sort((a,b) => (b.points-a.points) || (b.wins-a.wins) || a.name.localeCompare(b.name));
+      return filtered.map((r,i) => ({ rank:i+1, ...r }));
     }
 
-    let rows = Array.from(agg.values());
-    const q = String(search || '').trim().toLowerCase();
-    if (q) rows = rows.filter(x => String(x.name).toLowerCase().includes(q));
+    function render() {
+      const cfg = Object.fromEntries(DATA.config.map(x => [x.key, x.value]));
+      $("seasonLabel").textContent = cfg.seasonLabel || "Season";
+      $("statMembers").textContent = DATA.members.length;
+      $("statRounds").textContent = DATA.rounds.length;
+      $("statNext").textContent = cfg["upcoming.date"] || "—";
 
-    rows.sort((a,b) => (b.points - a.points) || (b.wins - a.wins) || String(a.name).localeCompare(String(b.name)));
-    return rows.map((r,i) => ({ rank: i+1, ...r }));
-  }
+      $("upTitle").textContent = cfg["upcoming.title"] || "—";
+      $("upWhen").textContent = `${cfg["upcoming.date"] || "—"} • ${cfg["upcoming.time"] || "—"}`;
+      $("upWhere").innerHTML = `<span class="font-semibold">Location:</span> ${cfg["upcoming.course"] || "—"}, ${cfg["upcoming.location"] || "—"}`;
+      $("upFormat").innerHTML = `<span class="font-semibold">Format:</span> ${cfg["upcoming.format"] || "Stableford"}`;
+      $("upNotes").textContent = cfg["upcoming.notes"] || "";
 
-  // -------------------------
-  // UI HELPERS
-  // -------------------------
-  function el(id) { return document.getElementById(id); }
+      const league = computeLeague();
+      $("leaderboardBodyHome").innerHTML = league.slice(0,10).map(r => `
+        <tr class="border-t ${r.rank===1?"bg-amber-50/60":""}">
+          <td class="p-3 font-semibold">${r.rank}</td>
+          <td class="p-3"><div class="font-medium">${r.name}</div><div class="text-xs text-gray-500">${r.role}</div></td>
+          <td class="p-3 text-right font-semibold tabular-nums">${r.points}</td>
+          <td class="p-3 text-right tabular-nums">${r.played}</td>
+          <td class="p-3 text-right tabular-nums">${r.wins}</td>
+          <td class="p-3 text-right tabular-nums">${r.handicapIndex}</td>
+        </tr>`).join("");
 
-  function escapeHtml(s) {
-    return String(s ?? '').replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[c]));
-  }
+      $("leaderboardBody").innerHTML = league.map(r => `
+        <tr class="border-t ${r.rank===1?"bg-amber-50/60":""}">
+          <td class="p-3 font-semibold">${r.rank}</td>
+          <td class="p-3"><div class="font-medium">${r.name}</div><div class="text-xs text-gray-500">${r.role}</div></td>
+          <td class="p-3 text-right font-semibold tabular-nums">${r.points}</td>
+          <td class="p-3 text-right tabular-nums">${r.played}</td>
+          <td class="p-3 text-right tabular-nums">${r.wins}</td>
+          <td class="p-3 text-right tabular-nums">${r.handicapIndex}</td>
+          <td class="p-3 text-right tabular-nums">${r.top3}</td>
+        </tr>`).join("");
 
-  function rowHtml(r, includeTop3) {
-    return `
-      <tr class="border-t ${r.rank===1?"bg-amber-50/60":""}">
-        <td class="p-3 font-semibold">${r.rank}</td>
-        <td class="p-3">
-          <div class="font-medium">${escapeHtml(r.name)}</div>
-          <div class="text-xs text-gray-500">${escapeHtml(r.role || '')}</div>
-        </td>
-        <td class="p-3 text-right font-semibold tabular-nums">${r.points}</td>
-        <td class="p-3 text-right tabular-nums text-gray-700">${r.played}</td>
-        <td class="p-3 text-right tabular-nums text-gray-700">${r.wins}</td>
-        <td class="p-3 text-right tabular-nums text-gray-700">${(r.handicapIndex ?? '—')}</td>
-        ${includeTop3 ? `<td class="p-3 text-right tabular-nums text-gray-700">${r.top3}</td>` : ''}
-      </tr>
-    `;
-  }
-
-  function roundCardHtml(r) {
-    const top = (Array.isArray(r.results) ? r.results.slice().sort((a,b)=> (a.position||999)-(b.position||999)).slice(0,3) : []);
-    const topHtml = top.length
-      ? top.map(x => {
-          const pts = x.stablefordPoints != null ? `, ${x.stablefordPoints} pts` : '';
-          return `<li>${escapeHtml(x.name)} (pos ${x.position ?? '?' }${pts})</li>`;
-        }).join('')
-      : "<li class='text-gray-500'>No results added</li>";
-
-    return `
-      <div class="bg-white rounded-2xl shadow border p-5">
-        <div class="flex items-start justify-between gap-3">
-          <div>
-            <div class="font-bold">${escapeHtml(r.course || '—')}</div>
-            <div class="text-gray-600 text-sm">${escapeHtml(r.date || '')} • ${escapeHtml(r.format || '')}</div>
-          </div>
-          <span class="text-xs px-3 py-1 rounded-2xl bg-gray-100 border">${escapeHtml(r.id || '')}</span>
-        </div>
-        <div class="mt-3"><span class="font-semibold">Winner:</span> ${escapeHtml(r.winner || '—')} <span class="text-gray-500">${escapeHtml(r.best || '')}</span></div>
-        <div class="mt-3">
-          <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Top 3</div>
-          <ul class="mt-1 list-disc list-inside text-sm text-gray-700">${topHtml}</ul>
-        </div>
-      </div>
-    `;
-  }
-
-  // Pages (hash routing)
-  const ROUTES = {
-    home: 'pageHome',
-    leaderboard: 'pageLeaderboard',
-    rounds: 'pageRounds',
-    members: 'pageMembers',
-    honours: 'pageHonours',
-  };
-
-  function showPageFromHash() {
-    const hash = (location.hash || '#home').replace('#','').trim().toLowerCase();
-    const pageId = ROUTES[hash] || ROUTES.home;
-    document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
-    el(pageId).classList.remove('hidden');
-
-    document.querySelectorAll('.navLink').forEach(a => {
-      const href = a.getAttribute('href');
-      const active = href === '#' + hash || (!hash && href === '#home');
-      if (active) a.classList.add('bg-emerald-600','text-white','border-emerald-600');
-      else a.classList.remove('bg-emerald-600','text-white','border-emerald-600');
-    });
-  }
-
-  // -------------------------
-  // MEMBER DETAILS MODAL (handicap history + chart)
-  // -------------------------
-  let memberChart = null;
-
-  function ensureMemberModal() {
-    if (el('memberModal')) return;
-    const div = document.createElement('div');
-    div.id = 'memberModal';
-    div.className = 'fixed inset-0 hidden items-center justify-center bg-black/40 p-4';
-    div.innerHTML = `
-      <div class="w-full max-w-3xl bg-white rounded-3xl shadow-xl border overflow-hidden">
-        <div class="px-6 py-4 border-b flex items-center justify-between">
-          <div>
-            <div class="text-sm text-gray-500">Member</div>
-            <div id="mmTitle" class="text-lg font-semibold">—</div>
-          </div>
-          <button id="mmClose" class="px-3 py-2 rounded-2xl border hover:bg-gray-50">Close</button>
-        </div>
-        <div class="p-6 space-y-4">
-          <div class="rounded-2xl border bg-gray-50 p-4">
-            <canvas id="mmChart" height="120"></canvas>
-          </div>
-          <div>
-            <div class="text-xs font-semibold uppercase tracking-wide text-gray-500">Handicap history</div>
-            <div class="mt-2 overflow-hidden rounded-2xl border">
-              <table class="w-full text-left">
-                <thead class="bg-emerald-100">
-                  <tr class="text-sm">
-                    <th class="p-3">Round</th>
-                    <th class="p-3">Course</th>
-                    <th class="p-3 text-right">Pts</th>
-                    <th class="p-3 text-right">Band</th>
-                    <th class="p-3 text-right">Adj</th>
-                    <th class="p-3 text-right">Hcap</th>
-                  </tr>
-                </thead>
-                <tbody id="mmBody"></tbody>
-              </table>
+      $("roundsGrid").innerHTML = DATA.rounds
+        .slice()
+        .sort((a,b)=>new Date(b.date)-new Date(a.date))
+        .map(r => `
+          <div class="bg-white rounded-2xl shadow border p-5">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <div class="font-bold">${r.course || "—"}</div>
+                <div class="text-gray-600 text-sm">${r.date || ""} • ${r.format || ""}</div>
+              </div>
+              <span class="text-xs px-3 py-1 rounded-2xl bg-gray-100 border">${r.id}</span>
             </div>
           </div>
+        `).join("") || "<div class='text-gray-500'>No rounds yet.</div>";
+
+      $("membersGrid").innerHTML = DATA.members.map(m => `
+        <div class="bg-white p-4 rounded-2xl shadow border">
+          <div class="font-semibold truncate">${m.name}</div>
+          <div class="text-sm text-gray-600">${m.role || "Member"} • Start ${m.startHandicapIndex}</div>
         </div>
-      </div>
-    `;
-    document.body.appendChild(div);
+      `).join("");
 
-    el('mmClose').addEventListener('click', closeMemberModal);
-    el('memberModal').addEventListener('click', (e) => { if (e.target === el('memberModal')) closeMemberModal(); });
-  }
+      // honours (optional)
+      const leagueWins = DATA.honours.filter(h => String(h.type).toLowerCase() === "league");
+      const majors = DATA.honours.filter(h => String(h.type).toLowerCase() === "major");
+      const fun = DATA.honours.filter(h => String(h.type).toLowerCase() === "fun");
 
-  function openMemberModal(memberName) {
-    ensureMemberModal();
-    const member = (DATA.members || []).find(m => m.name === memberName);
-    const hist = handicapHistoryForPlayer(DATA, memberName);
+      $("honoursLeague").innerHTML = leagueWins.map(x => `<li>${x.year} — ${x.winner}</li>`).join("");
+      $("honoursMajors").innerHTML = majors.map(x => `<li>${x.title} ${x.year} — ${x.winner}</li>`).join("");
+      $("honoursFun").innerHTML = fun.map(x => `<li>${x.title || x.award} ${x.year} — ${x.winner}</li>`).join("");
 
-    el('mmTitle').textContent = memberName + (member?.role ? ` · ${member.role}` : '');
+      showPage();
+    }
 
-    // table
-    el('mmBody').innerHTML = hist.map((p, idx) => {
-      const isStart = idx === 0;
-      return `
-        <tr class="border-t ${isStart ? 'bg-white' : ''}">
-          <td class="p-3">${escapeHtml(isStart ? 'Start' : (p.roundId || p.label))}</td>
-          <td class="p-3">${escapeHtml(isStart ? '—' : (p.course || ''))}</td>
-          <td class="p-3 text-right tabular-nums">${isStart ? '—' : (p.stablefordPoints ?? '—')}</td>
-          <td class="p-3 text-right tabular-nums">${p.band ?? '—'}</td>
-          <td class="p-3 text-right tabular-nums">${isStart ? '—' : (p.adj >= 0 ? '+' + p.adj : p.adj)}</td>
-          <td class="p-3 text-right tabular-nums font-semibold">${p.hcap}</td>
-        </tr>
-      `;
-    }).join('');
+    async function syncAll() {
+      setStatus("Fetching Google Sheets…", "If this hangs, your tabs/headers may not match.");
 
-    // chart
-    const labels = hist.map(p => p.label);
-    const values = hist.map(p => p.hcap);
+      // Fetch tabs
+      const [Members, Rounds, Results, Honours, Config, HandicapRules] = await Promise.all([
+        fetchTab("Members"),
+        fetchTab("Rounds"),
+        fetchTab("Results"),
+        fetchTab("Honours"),
+        fetchTab("Config"),
+        fetchTab("HandicapRules"),
+      ]);
 
-    const ctx = el('mmChart').getContext('2d');
-    if (memberChart) memberChart.destroy();
-    memberChart = new Chart(ctx, {
-      type: 'line',
-      data: { labels, datasets: [{ label: 'Handicap', data: values, tension: 0.35 }] },
-      options: {
-        responsive: true,
-        plugins: { legend: { display: false } },
-        scales: {
-          y: { ticks: { precision: 1 } },
+      // Normalise expected columns
+      DATA.members = Members.map(r => ({
+        name: r.name || r.Name || "",
+        role: r.role || r.Role || "Member",
+        startHandicapIndex: r.startHandicapIndex || r.startHandicap || r.Handicap || 0
+      })).filter(x => String(x.name).trim() !== "");
+
+      DATA.rounds = Rounds.map(r => ({
+        id: r.id || r.ID || r.roundId || r.RoundId || "",
+        date: r.date || r.Date || "",
+        course: r.course || r.Course || "",
+        format: r.format || r.Format || "Stableford"
+      })).filter(x => String(x.id).trim() !== "");
+
+      DATA.results = Results.map(r => ({
+        roundId: r.roundId || r.RoundId || "",
+        name: r.name || r.Name || "",
+        position: r.position || r.Position || "",
+        stablefordPoints: r.stablefordPoints || r.StablefordPoints || r.points || r.Points || ""
+      })).filter(x => String(x.roundId).trim() && String(x.name).trim());
+
+      DATA.honours = Honours;
+      DATA.config = Config.map(r => ({ key: r.key || r.Key || "", value: r.value || r.Value || "" })).filter(x => x.key);
+      DATA.rules = HandicapRules;
+
+      // Build handicap lookup
+      adjLookup = new Map();
+      for (const r of HandicapRules) {
+        const band = Number(r.band || r.Band);
+        const score = Number(r.score || r.Score);
+        const adj = Number(r.adjustment || r.Adjustment);
+        if (Number.isFinite(band) && Number.isFinite(score) && Number.isFinite(adj)) {
+          adjLookup.set(`${band}:${Math.trunc(score)}`, adj);
         }
       }
-    });
 
-    el('memberModal').classList.remove('hidden');
-    el('memberModal').classList.add('flex');
-  }
-
-  function closeMemberModal() {
-    el('memberModal').classList.add('hidden');
-    el('memberModal').classList.remove('flex');
-  }
-
-  // -------------------------
-  // RENDER
-  // -------------------------
-  function render() {
-    // stats
-    el('seasonLabel').textContent = DATA.seasonLabel || 'Season';
-    el('statMembers').textContent = (DATA.members || []).length;
-    el('statRounds').textContent = (DATA.rounds?.length || 0) + 1;
-    el('statNext').textContent = DATA.upcoming?.date || 'TBC';
-
-    // upcoming
-    el('upTitle').textContent = DATA.upcoming?.title || '—';
-    el('upWhen').textContent = `${DATA.upcoming?.date || '—'} • ${DATA.upcoming?.time || '—'}`;
-    el('upWhere').innerHTML = `<span class='font-semibold'>Location:</span> ${escapeHtml(DATA.upcoming?.course || '—')}, ${escapeHtml(DATA.upcoming?.location || '—')}`;
-    el('upFormat').innerHTML = `<span class='font-semibold'>Format:</span> ${escapeHtml(DATA.upcoming?.format || 'Stableford')}`;
-    el('upNotes').textContent = DATA.upcoming?.notes || '';
-
-    const q = el('searchBox').value || '';
-    const table = computeLeagueTable(DATA, q);
-
-    el('leaderboardBodyHome').innerHTML = table.slice(0,10).map(r => rowHtml(r, false)).join('');
-    el('leaderboardBody').innerHTML = table.map(r => rowHtml(r, true)).join('');
-
-    const roundsSorted = (DATA.rounds || []).slice().sort((a,b) => parseDate(b.date) - parseDate(a.date));
-    el('roundsGrid').innerHTML = roundsSorted.map(r => roundCardHtml(r)).join('') || "<div class='text-gray-500'>No rounds yet.</div>";
-
-    const currentHcap = recomputeCurrentHandicaps(DATA);
-    el('membersGrid').innerHTML = (DATA.members || []).map(m => {
-      const cur = currentHcap.get(m.name) ?? m.startHandicapIndex ?? 0;
-      return `
-        <button data-member="${escapeHtml(m.name)}" class="text-left bg-white p-4 rounded-2xl shadow border hover:bg-gray-50">
-          <div class="font-semibold truncate">${escapeHtml(m.name)}</div>
-          <div class="text-sm text-gray-600">${escapeHtml(m.role || 'Member')} • Start ${m.startHandicapIndex} → Now <span class="font-semibold">${cur}</span></div>
-          <div class="mt-2 text-xs text-emerald-700">Tap for handicap history</div>
-        </button>
-      `;
-    }).join('');
-
-    // bind member click
-    document.querySelectorAll('[data-member]').forEach(btn => {
-      btn.addEventListener('click', () => openMemberModal(btn.getAttribute('data-member')));
-    });
-
-    el('honoursLeague').innerHTML = (DATA.honours?.leagueWinners||[]).map(x => `<li>${x.year || ''} — ${escapeHtml(x.winner)}</li>`).join('');
-    el('honoursMajors').innerHTML = (DATA.honours?.majorChampions||[]).map(x => `<li>${escapeHtml(x.title || '')} ${x.year || ''} — ${escapeHtml(x.winner)}</li>`).join('');
-    el('honoursFun').innerHTML = (DATA.honours?.funAwards||[]).map(x => `<li>${escapeHtml(x.award || '')} ${x.year || ''} — ${escapeHtml(x.winner)}</li>`).join('');
-
-    // show data source (if footer exists)
-    if (el('dataStatus')) {
-      const stamp = LAST_SYNC ? LAST_SYNC.toLocaleString() : '—';
-      el('dataStatus').textContent = LAST_SOURCE === 'google'
-        ? `Data: Google Sheets (last sync: ${stamp})`
-        : `Data: Local fallback (last sync: ${stamp})`;
-    }
-  }
-
-  // -------------------------
-  // ADMIN BUTTON (Option A)
-  // -------------------------
-  function openAdminRedirect() {
-    alert('Admin edits are in Google Sheets for now (Option A).
-
-Open your sheet and edit the tabs: Members / Rounds / Results / Config / HandicapRules.');
-    window.open(`https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit?usp=sharing`, '_blank');
-  }
-
-  // -------------------------
-  // INIT
-  // -------------------------
-  async function init() {
-    // Add a small status + refresh chip to footer if not present
-    const footer = document.querySelector('footer');
-    if (footer && !el('dataStatus')) {
-      const wrap = document.createElement('div');
-      wrap.className = 'mt-2 flex flex-col items-center gap-2 sm:flex-row sm:justify-center';
-      wrap.innerHTML = `
-        <span id="dataStatus" class="text-xs px-3 py-1 rounded-2xl bg-gray-100 border">Data: —</span>
-        <button id="btnRefresh" class="text-xs px-3 py-1 rounded-2xl border bg-white hover:bg-gray-50">Refresh</button>
-      `;
-      footer.appendChild(wrap);
-      document.getElementById('btnRefresh').addEventListener('click', async () => {
-        await trySync();
-        render();
-      });
+      setStatus("Loaded ✅", `Members: ${DATA.members.length} · Rounds: ${DATA.rounds.length} · Results: ${DATA.results.length} · Rules: ${adjLookup.size}`);
+      render();
     }
 
-    showPageFromHash();
+    // Wire events (these exist even before data loads)
+    window.addEventListener("hashchange", showPage);
+    document.querySelectorAll(".navLink").forEach(a => a.addEventListener("click", () => setTimeout(showPage, 0)));
 
-    await trySync();
-    render();
+    $("btnRefresh").addEventListener("click", () => syncAll().catch(err => setStatus("Error ❌", String(err))));
+    $("searchBox").addEventListener("input", render);
+    $("btnReset").addEventListener("click", () => { $("searchBox").value=""; render(); });
 
-    // events
-    window.addEventListener('hashchange', showPageFromHash);
-
-    // Some mobile browsers can be flaky with hashchange; force update on nav clicks too.
-    document.querySelectorAll('.navLink').forEach(a => {
-      a.addEventListener('click', () => setTimeout(showPageFromHash, 0));
-    });
-    el('searchBox').addEventListener('input', render);
-    el('btnReset').addEventListener('click', () => { el('searchBox').value = ''; render(); });
-    el('btnAdmin').addEventListener('click', openAdminRedirect);
-  }
-
-  async function trySync() {
-    try {
-      await syncFromGoogleSheets();
-    } catch (e) {
-      console.warn('Google Sheets sync failed, using local fallback:', e);
-      LAST_SOURCE = 'local';
-      LAST_SYNC = new Date();
-
-      // Show a visible hint on the Home page if data isn't loading.
-      const home = document.getElementById('pageHome');
-      if (home && !document.getElementById('syncHint')) {
-        const hint = document.createElement('div');
-        hint.id = 'syncHint';
-        hint.className = 'rounded-2xl border bg-amber-50 p-4 text-sm text-amber-900';
-        hint.innerHTML = `
-          <div class="font-semibold">Google Sheets data isn’t loading yet.</div>
-          <div class="mt-1">Fix: In your Google Sheet go to <span class="font-semibold">File → Share</span> and set <span class="font-semibold">General access</span> to <span class="font-semibold">Anyone with the link (Viewer)</span>.</div>
-          <div class="mt-1">If it still doesn’t work for everyone, use <span class="font-semibold">File → Share → Publish to the web</span> (Entire document).</div>
-        `;
-        // Put hint under the hero section
-        home.prepend(hint);
-      }
-    }
-  }
-
-  // Ensure init runs after DOM is ready (prevents missing-element issues)
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => init().catch(err => window.__showErr && window.__showErr(err)));
-  } else {
-    init().catch(err => window.__showErr && window.__showErr(err));
-  }
-</script>
+    // Boot
+    setStatus("Ready", "Press Refresh to load data from the Google Sheet.");
+    // Auto load once
+    syncAll().catch(err => setStatus("Error ❌", String(err)));
+  </script>
 </body>
 </html>
