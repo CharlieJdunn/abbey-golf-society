@@ -8,7 +8,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
-
   <style>
     :root{
       --augusta-950:#07140e;
@@ -21,6 +20,7 @@
     body { font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
     .serif { font-family: "Playfair Display", Georgia, serif; }
     :focus-visible{ outline: 3px solid rgba(27,90,67,.35); outline-offset: 2px; border-radius: 16px; }
+    .tabular-nums{ font-variant-numeric: tabular-nums; }
   </style>
 </head>
 
@@ -30,11 +30,11 @@
     <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
       <a href="#home" class="flex items-center gap-3">
         <div class="h-10 w-10 rounded-2xl border border-black/10 bg-white shadow-sm flex items-center justify-center overflow-hidden">
-          <img src="./assets/logo.png" alt="Abbey Golf Society" class="h-8 w-8 object-contain" />
+          <img src="./assets/logo.png" alt="Abbey Golf Society" class="h-8 w-8 object-contain" onerror="this.style.display='none'; this.parentElement.innerHTML='🏆';" />
         </div>
         <div class="leading-tight">
           <div class="font-semibold tracking-tight">Abbey Golf Society</div>
-          <div class="text-xs text-slate-600">Official Portal</div>
+          <div class="text-xs text-slate-600">Fixtures · Standings · Results</div>
         </div>
       </a>
 
@@ -44,7 +44,6 @@
           <a class="navLink px-3 py-2 rounded-2xl border border-black/10 bg-white hover:bg-black/5 text-sm" href="#leaderboard">Leaderboard</a>
           <a class="navLink px-3 py-2 rounded-2xl border border-black/10 bg-white hover:bg-black/5 text-sm" href="#rounds">Rounds</a>
           <a class="navLink px-3 py-2 rounded-2xl border border-black/10 bg-white hover:bg-black/5 text-sm" href="#members">Members</a>
-          <a class="navLink px-3 py-2 rounded-2xl border border-black/10 bg-white hover:bg-black/5 text-sm" href="#honours">Honours</a>
         </nav>
 
         <a id="adminLink"
@@ -61,7 +60,6 @@
         <a class="navLink px-3 py-2 rounded-2xl border border-black/10 bg-white hover:bg-black/5 text-sm whitespace-nowrap" href="#leaderboard">Leaderboard</a>
         <a class="navLink px-3 py-2 rounded-2xl border border-black/10 bg-white hover:bg-black/5 text-sm whitespace-nowrap" href="#rounds">Rounds</a>
         <a class="navLink px-3 py-2 rounded-2xl border border-black/10 bg-white hover:bg-black/5 text-sm whitespace-nowrap" href="#members">Members</a>
-        <a class="navLink px-3 py-2 rounded-2xl border border-black/10 bg-white hover:bg-black/5 text-sm whitespace-nowrap" href="#honours">Honours</a>
       </div>
     </div>
   </div>
@@ -74,17 +72,37 @@
           <div class="flex items-center justify-between gap-4">
             <div class="flex items-center gap-4">
               <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white/10 border border-white/15 shadow flex items-center justify-center overflow-hidden">
-                <img src="./assets/logo.png" alt="Abbey Golf Society logo" class="w-full h-full object-contain p-2">
+                <img src="./assets/logo.png" alt="Abbey Golf Society logo" class="w-full h-full object-contain p-2" onerror="this.style.display='none';" />
               </div>
               <div>
                 <h1 class="serif text-2xl sm:text-3xl font-bold tracking-tight">Abbey Golf Society</h1>
-                <p class="text-white/80 text-sm mt-1">Fixtures · Standings · Results</p>
+                <p id="seasonLabel" class="text-white/80 text-sm mt-1">Season</p>
               </div>
             </div>
 
-            <a href="#leaderboard" class="hidden sm:inline-flex px-4 py-2 rounded-2xl bg-white text-[var(--augusta-900)] font-medium hover:bg-white/90">
-              View standings
-            </a>
+            <div class="hidden sm:flex items-center gap-2">
+              <a href="#leaderboard" class="px-4 py-2 rounded-2xl bg-white text-[var(--augusta-900)] font-medium hover:bg-white/90">
+                View standings
+              </a>
+              <button id="btnRefreshTop" class="px-4 py-2 rounded-2xl bg-white/10 border border-white/20 hover:bg-white/15 text-white">
+                Refresh
+              </button>
+            </div>
+          </div>
+
+          <div class="mt-4 grid grid-cols-3 gap-2 sm:max-w-md">
+            <div class="rounded-2xl border border-white/15 bg-white/10 px-3 py-2 text-center">
+              <div class="text-xs text-white/70">Members</div>
+              <div id="statMembers" class="font-semibold tabular-nums">—</div>
+            </div>
+            <div class="rounded-2xl border border-white/15 bg-white/10 px-3 py-2 text-center">
+              <div class="text-xs text-white/70">Rounds</div>
+              <div id="statRounds" class="font-semibold tabular-nums">—</div>
+            </div>
+            <div class="rounded-2xl border border-white/15 bg-white/10 px-3 py-2 text-center">
+              <div class="text-xs text-white/70">Results</div>
+              <div id="statResults" class="font-semibold tabular-nums">—</div>
+            </div>
           </div>
         </div>
       </div>
@@ -109,71 +127,65 @@
           </div>
 
           <div class="rounded-2xl border border-black/10 bg-[var(--paper)] p-4">
-            <div class="text-xs text-slate-600">Season</div>
-            <div id="seasonLabel" class="font-semibold mt-1">Season</div>
-
-            <div class="mt-4 grid grid-cols-3 gap-2 text-sm">
-              <div class="rounded-2xl border border-black/10 bg-white px-3 py-2 text-center">
-                <div class="text-xs text-slate-500">Members</div>
-                <div id="statMembers" class="font-semibold">—</div>
-              </div>
-              <div class="rounded-2xl border border-black/10 bg-white px-3 py-2 text-center">
-                <div class="text-xs text-slate-500">Rounds</div>
-                <div id="statRounds" class="font-semibold">—</div>
-              </div>
-              <div class="rounded-2xl border border-black/10 bg-white px-3 py-2 text-center">
-                <div class="text-xs text-slate-500">Next</div>
-                <div id="statNext" class="font-semibold">—</div>
-              </div>
-            </div>
-
-            <div class="mt-4 flex gap-2">
+            <div class="text-xs text-slate-600">Quick actions</div>
+            <div class="mt-3 flex gap-2">
               <a href="#rounds" class="flex-1 text-center px-3 py-2 rounded-2xl border border-black/10 bg-white hover:bg-black/5 text-sm">Rounds</a>
               <a href="#leaderboard" class="flex-1 text-center px-3 py-2 rounded-2xl bg-[var(--augusta-800)] text-white hover:bg-[var(--augusta-700)] text-sm">Standings</a>
+            </div>
+
+            <div class="mt-4 text-xs text-slate-500">
+              Leaderboard totals are the <span class="font-semibold">sum of Stableford points</span> across all rounds.
+              Handicaps update <span class="font-semibold">sequentially</span> after each round.
+            </div>
+
+            <div class="mt-4">
+              <div class="text-xs text-slate-600">Search</div>
+              <div class="mt-2 flex gap-2">
+                <input id="searchBox" class="w-full rounded-2xl border border-black/10 px-4 py-2 bg-white" placeholder="Search players…" />
+                <button id="btnReset" class="px-4 py-2 rounded-2xl border border-black/10 bg-white hover:bg-black/5">Reset</button>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- Full standings -->
+      <!-- Full standings on home (mobile-first cards + desktop table) -->
       <section class="bg-white rounded-3xl shadow-sm p-6 border border-black/10">
-        <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <div class="flex items-end justify-between gap-4">
           <div>
-            <h2 class="serif text-xl font-bold">Standings</h2>
-            <p class="text-sm text-slate-600 mt-1">All members · live points & handicap.</p>
+            <h2 class="serif text-xl font-bold">Leaderboard</h2>
+            <p class="text-sm text-slate-600 mt-1">Total = sum of round Stableford points.</p>
           </div>
-
-          <div class="flex items-center gap-2">
-            <input id="searchBox" class="w-full sm:w-72 rounded-2xl border border-black/10 px-4 py-2 bg-white" placeholder="Search players…" />
-            <button id="btnReset" class="px-4 py-2 rounded-2xl border border-black/10 bg-white hover:bg-black/5">Reset</button>
-          </div>
+          <a href="#leaderboard" class="text-sm px-4 py-2 rounded-2xl border border-black/10 bg-white hover:bg-black/5 hidden sm:inline-flex">Open full</a>
         </div>
 
-        <div id="leaderboardCardsHome" class="mt-5 grid gap-3 sm:hidden"></div>
+        <div id="lbCardsHome" class="mt-5 grid gap-3 sm:hidden"></div>
 
-        <div class="mt-5 bg-white rounded-2xl shadow-sm border border-black/10 overflow-hidden hidden sm:block">
+        <div class="mt-5 rounded-2xl border border-black/10 overflow-hidden hidden sm:block">
           <table class="w-full text-left">
             <thead class="bg-[var(--augusta-900)] text-white">
               <tr class="text-sm">
                 <th class="p-3 w-10">#</th>
                 <th class="p-3">Player</th>
-                <th class="p-3 text-right">Points</th>
+                <th class="p-3 text-right">Total</th>
                 <th class="p-3 text-right">Played</th>
                 <th class="p-3 text-right">Wins</th>
+                <th class="p-3 text-right">Top-3</th>
                 <th class="p-3 text-right">Hcap</th>
               </tr>
             </thead>
-            <tbody id="leaderboardBodyHome" class="divide-y divide-black/5"></tbody>
+            <tbody id="lbTableHome" class="divide-y divide-black/5"></tbody>
           </table>
         </div>
       </section>
     </section>
 
-    <!-- LEADERBOARD PAGE -->
+    <!-- LEADERBOARD -->
     <section id="pageLeaderboard" class="page hidden space-y-4">
       <h2 class="serif text-2xl font-bold">Leaderboard</h2>
+      <p class="text-sm text-slate-600">Ranked by total Stableford points (sum of all rounds).</p>
 
-      <div id="leaderboardCards" class="grid gap-3 sm:hidden"></div>
+      <div id="lbCards" class="grid gap-3 sm:hidden"></div>
 
       <div class="bg-white rounded-2xl shadow-sm border border-black/10 overflow-hidden hidden sm:block">
         <table class="w-full text-left">
@@ -181,51 +193,33 @@
             <tr class="text-sm">
               <th class="p-3 w-10">#</th>
               <th class="p-3">Player</th>
-              <th class="p-3 text-right">Points</th>
+              <th class="p-3 text-right">Total</th>
               <th class="p-3 text-right">Played</th>
               <th class="p-3 text-right">Wins</th>
-              <th class="p-3 text-right">Hcap</th>
               <th class="p-3 text-right">Top-3</th>
+              <th class="p-3 text-right">Current Hcap</th>
             </tr>
           </thead>
-          <tbody id="leaderboardBody" class="divide-y divide-black/5"></tbody>
+          <tbody id="lbTable" class="divide-y divide-black/5"></tbody>
         </table>
       </div>
     </section>
 
-    <!-- ROUNDS (UPGRADED) -->
+    <!-- ROUNDS -->
     <section id="pageRounds" class="page hidden space-y-4">
       <h2 class="serif text-2xl font-bold">Rounds</h2>
+      <p class="text-sm text-slate-600">Each round is ranked from Stableford score. Tap a member to see handicap progression.</p>
       <div id="roundsGrid" class="grid md:grid-cols-2 gap-4"></div>
     </section>
 
-    <!-- MEMBERS (CLICKABLE -> MODAL) -->
+    <!-- MEMBERS -->
     <section id="pageMembers" class="page hidden space-y-4">
       <h2 class="serif text-2xl font-bold">Members</h2>
-      <p class="text-sm text-slate-600">Tap a member to view their season stats and handicap trend.</p>
+      <p class="text-sm text-slate-600">Tap a member to see their round-by-round points and handicap changes.</p>
       <div id="membersGrid" class="grid grid-cols-2 md:grid-cols-4 gap-4"></div>
     </section>
 
-    <!-- HONOURS -->
-    <section id="pageHonours" class="page hidden space-y-4">
-      <h2 class="serif text-2xl font-bold">Honours</h2>
-      <div class="bg-white rounded-2xl shadow-sm border border-black/10 p-6 grid md:grid-cols-3 gap-6">
-        <div>
-          <h3 class="font-bold mb-2 text-[var(--augusta-900)]">League Winners</h3>
-          <ul id="honoursLeague" class="list-disc list-inside text-slate-700"></ul>
-        </div>
-        <div>
-          <h3 class="font-bold mb-2 text-[var(--augusta-900)]">Majors</h3>
-          <ul id="honoursMajors" class="list-disc list-inside text-slate-700"></ul>
-        </div>
-        <div>
-          <h3 class="font-bold mb-2 text-[var(--augusta-900)]">Fun Awards</h3>
-          <ul id="honoursFun" class="list-disc list-inside text-slate-700"></ul>
-        </div>
-      </div>
-    </section>
-
-    <!-- Footer (status tucked away) -->
+    <!-- Footer status -->
     <footer class="py-10 text-center space-y-3">
       <div class="text-xs text-slate-500">© 2026 Abbey Golf Society</div>
 
@@ -233,7 +227,7 @@
         <div class="px-3 py-2 rounded-2xl border border-black/10 bg-white">
           <span id="statusLine" class="font-semibold">Ready</span>
           <span class="text-slate-500">·</span>
-          <span id="statusDetail" class="text-slate-500">Loading…</span>
+          <span id="statusDetail" class="text-slate-500">—</span>
         </div>
         <button id="btnRefresh" class="px-3 py-2 rounded-2xl border border-black/10 bg-white hover:bg-black/5">
           Refresh
@@ -257,12 +251,12 @@
       <div class="p-5 space-y-5">
         <div class="grid sm:grid-cols-3 gap-3">
           <div class="rounded-2xl border border-black/10 bg-[var(--paper)] p-4">
-            <div class="text-xs text-slate-500">Current Handicap</div>
-            <div id="mmHcap" class="text-2xl font-bold tabular-nums mt-1">—</div>
+            <div class="text-xs text-slate-500">Total Points</div>
+            <div id="mmTotal" class="text-2xl font-bold tabular-nums mt-1">—</div>
           </div>
           <div class="rounded-2xl border border-black/10 bg-[var(--paper)] p-4">
-            <div class="text-xs text-slate-500">Season Stats</div>
-            <div id="mmStats" class="text-sm text-slate-700 mt-2">—</div>
+            <div class="text-xs text-slate-500">Current Handicap</div>
+            <div id="mmHcap" class="text-2xl font-bold tabular-nums mt-1">—</div>
           </div>
           <div class="rounded-2xl border border-black/10 bg-[var(--paper)] p-4">
             <div class="text-xs text-slate-500">Handicap Trend</div>
@@ -276,7 +270,7 @@
         </div>
 
         <div class="rounded-2xl border border-black/10 overflow-hidden">
-          <div class="px-4 py-3 bg-[var(--augusta-900)] text-white text-sm font-semibold">Handicap history</div>
+          <div class="px-4 py-3 bg-[var(--augusta-900)] text-white text-sm font-semibold">Round-by-round points & handicap updates</div>
           <div class="overflow-x-auto">
             <table class="w-full text-left">
               <thead class="bg-white">
@@ -284,8 +278,9 @@
                   <th class="p-3">Round</th>
                   <th class="p-3">Course</th>
                   <th class="p-3 text-right">Pts</th>
+                  <th class="p-3 text-right">Band</th>
                   <th class="p-3 text-right">Adj</th>
-                  <th class="p-3 text-right">Hcap</th>
+                  <th class="p-3 text-right">New Hcap</th>
                 </tr>
               </thead>
               <tbody id="mmBody" class="divide-y divide-black/5"></tbody>
@@ -294,17 +289,18 @@
         </div>
 
         <div class="text-xs text-slate-500">
-          Adjustments are applied only when Stableford points are present for that round.
+          This is calculated sequentially: your score in a round updates your handicap, which affects your band + adjustment in the next round.
         </div>
       </div>
     </div>
   </div>
 
   <script>
-    // ===== CONFIG =====
+    // =========================
+    // CONFIG
+    // =========================
     const SHEET_ID = "1jFLU54LLj3RMcdWIeKOMz8UO8HuWbAXm8ZzhRGeFjUk";
     const SHEET_URL = (tab) => `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tab)}`;
-
     document.getElementById("adminLink").href = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit?usp=sharing`;
 
     const $ = (id) => document.getElementById(id);
@@ -314,7 +310,9 @@
       $("statusDetail").textContent = detail || "—";
     }
 
-    // ===== CSV parser =====
+    // =========================
+    // CSV parser
+    // =========================
     function parseCSV(text) {
       const rows = [];
       let row = [], cur = "", inQuotes = false;
@@ -326,9 +324,8 @@
         if (ch === '"' && inQuotes && next === '"') { cur += '"'; i++; continue; }
         if (ch === '"') { inQuotes = !inQuotes; continue; }
 
-        if (!inQuotes && (ch === ",")) { row.push(cur); cur = ""; continue; }
-        if (!inQuotes && (ch === "\n")) { row.push(cur); rows.push(row); row = []; cur = ""; continue; }
-
+        if (!inQuotes && ch === ",") { row.push(cur); cur = ""; continue; }
+        if (!inQuotes && ch === "\n") { row.push(cur); rows.push(row); row = []; cur = ""; continue; }
         if (ch !== "\r") cur += ch;
       }
       row.push(cur);
@@ -354,10 +351,37 @@
       return toObjects(parseCSV(text));
     }
 
-    // ===== handicap rules =====
+    // =========================
+    // Normalisers (prevents the "not updating" issues)
+    // =========================
+    function normName(s){
+      return String(s ?? "")
+        .trim()
+        .replace(/[’‘]/g, "'")     // smart apostrophes -> normal
+        .replace(/\s+/g, " ");     // collapse spaces
+    }
+    function normRoundId(s){
+      return String(s ?? "").trim().toUpperCase();
+    }
+    function toNumOrNull(v){
+      if (v == null) return null;
+      const x = String(v).trim();
+      if (!x) return null;
+      const n = Number(x);
+      return Number.isFinite(n) ? n : null;
+    }
+    function escapeHtml(s) {
+      return String(s ?? '').replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[c]));
+    }
+    function round1(n){ return Math.round((Number(n)+Number.EPSILON)*10)/10; }
+
+    // =========================
+    // Handicap rules
+    // =========================
     let adjLookup = new Map(); // key: band:score -> adjustment
 
-    function round1(n){ return Math.round((Number(n)+Number.EPSILON)*10)/10; }
+    // Your band rules (from earlier):
+    // Band 4: 29+, Band 3: 20–28, Band 2: 11–19, Band 1: 0–10
     function bandFromHandicap(h) {
       const x = Math.round(Number(h) || 0);
       if (x >= 29) return 4;
@@ -365,134 +389,180 @@
       if (x >= 11) return 2;
       return 1;
     }
-    function getAdj(h, pts) {
-      const b = bandFromHandicap(h);
-      const s = Math.trunc(Number(pts));
-      const k = `${b}:${s}`;
-      const a = adjLookup.get(k);
-      return { band: b, adj: (typeof a === "number" ? a : 0) };
+
+    function getAdj(currentHcap, stablefordPoints) {
+      const band = bandFromHandicap(currentHcap);
+      const score = Math.trunc(Number(stablefordPoints));
+      const k = `${band}:${score}`;
+      const adj = adjLookup.get(k);
+      return { band, adj: (typeof adj === "number" ? adj : 0) };
     }
 
-    // ===== routing =====
-    const ROUTES = { home:"pageHome", leaderboard:"pageLeaderboard", rounds:"pageRounds", members:"pageMembers", honours:"pageHonours" };
+    // =========================
+    // Routing
+    // =========================
+    const ROUTES = { home:"pageHome", leaderboard:"pageLeaderboard", rounds:"pageRounds", members:"pageMembers" };
     function showPage() {
       const hash = (location.hash || "#home").slice(1).toLowerCase();
       const pageId = ROUTES[hash] || ROUTES.home;
       document.querySelectorAll(".page").forEach(p => p.classList.add("hidden"));
       $(pageId).classList.remove("hidden");
-
-      const activeKey = hash || "home";
-      document.querySelectorAll(".navLink").forEach(a => {
-        const isActive = a.getAttribute("href") === `#${activeKey}`;
-        a.classList.toggle("ring-2", isActive);
-        a.classList.toggle("ring-[rgba(27,90,67,.25)]", isActive);
-      });
     }
 
-    // ===== data =====
-    let DATA = { members:[], rounds:[], results:[], honours:[], config:[], rules:[] };
+    // =========================
+    // Data model
+    // =========================
+    let DATA = {
+      members: [],
+      rounds: [],
+      results: [],
+      config: []
+    };
+
+    function getCfg() {
+      return Object.fromEntries((DATA.config || []).map(x => [x.key, x.value]));
+    }
 
     function resultsForRound(roundId){
-      return DATA.results
-        .filter(r => String(r.roundId).trim() === String(roundId).trim())
-        .map(r => ({
-          name: String(r.name || "").trim(),
-          position: Number(r.position),
-          stablefordPoints: (r.stablefordPoints === "" || r.stablefordPoints == null) ? null : Number(r.stablefordPoints)
-        }))
-        .filter(r => r.name);
+      const rid = normRoundId(roundId);
+      return (DATA.results || []).filter(r => r.roundId === rid && r.name);
     }
 
-    function computeCurrentHandicapsWithHistory() {
-      // returns { curMap, historyMap }
-      const startMap = new Map(DATA.members.map(m => [m.name, Number(m.startHandicapIndex || 0)]));
-      const curMap = new Map(startMap);
-      const historyMap = new Map(); // name -> [{label, roundId, course, pts, adj, hcap}]
+    function buildRoundRanks() {
+      // For each round, rank members from Stableford points (desc), ties share position.
+      // DNP (null/0) excluded.
+      const map = new Map(); // roundId -> { ranked: [{name, pts, pos}], posByName: Map }
+      for (const r of (DATA.rounds || [])) {
+        const rid = r.id;
+        const items = resultsForRound(rid)
+          .map(x => ({ name: x.name, pts: x.stablefordPoints }))
+          .filter(x => x.pts != null && Number(x.pts) > 0);
 
-      for (const m of DATA.members) {
-        historyMap.set(m.name, [{
-          label: "Start",
+        items.sort((a,b) => (b.pts - a.pts) || a.name.localeCompare(b.name));
+
+        const ranked = [];
+        let lastPts = null;
+        let lastPos = 0;
+        for (let i=0; i<items.length; i++) {
+          const it = items[i];
+          const pos = (lastPts === it.pts) ? lastPos : (i + 1);
+          ranked.push({ ...it, pos });
+          lastPts = it.pts;
+          lastPos = pos;
+        }
+
+        const posByName = new Map(ranked.map(x => [x.name, x.pos]));
+        map.set(rid, { ranked, posByName });
+      }
+      return map;
+    }
+
+    function computeHandicapHistoryAndCurrent() {
+      // Sequential handicap updates per player across rounds by date order.
+      const roundsSorted = (DATA.rounds || []).slice().sort((a,b) => new Date(a.date) - new Date(b.date));
+      const resultByRound = new Map();
+      for (const r of roundsSorted) {
+        resultByRound.set(r.id, resultsForRound(r.id));
+      }
+
+      const current = new Map();
+      const history = new Map(); // name -> array of steps
+
+      for (const m of (DATA.members || [])) {
+        const start = round1(toNumOrNull(m.startHandicapIndex) ?? 0);
+        current.set(m.name, start);
+        history.set(m.name, [{
           roundId: null,
+          roundLabel: "Start",
           course: "—",
           pts: null,
+          band: bandFromHandicap(start),
           adj: null,
-          hcap: round1(Number(m.startHandicapIndex || 0))
+          newHcap: start
         }]);
       }
 
-      const sortedRounds = [...DATA.rounds].sort((a,b) => new Date(a.date) - new Date(b.date));
-      for (const r of sortedRounds) {
-        const res = resultsForRound(r.id).sort((a,b) => (a.position||999)-(b.position||999));
-        for (const x of res) {
-          if (!curMap.has(x.name)) continue;
+      for (const r of roundsSorted) {
+        const res = resultByRound.get(r.id) || [];
+        for (const m of (DATA.members || [])) {
+          const cur = current.get(m.name);
+          const row = res.find(x => x.name === m.name);
+          const pts = row ? row.stablefordPoints : null;
 
-          const cur = curMap.get(x.name);
-          let adj = 0;
-
-          if (x.stablefordPoints != null && Number.isFinite(x.stablefordPoints)) {
-            adj = getAdj(cur, x.stablefordPoints).adj;
-            curMap.set(x.name, Math.max(0, round1(cur + adj)));
+          if (pts == null || Number(pts) <= 0) {
+            // DNP -> no change, but we still record the round (optional).
+            history.get(m.name).push({
+              roundId: r.id,
+              roundLabel: r.id,
+              course: r.course || "",
+              pts: null,
+              band: bandFromHandicap(cur),
+              adj: null,
+              newHcap: cur
+            });
+            continue;
           }
 
-          const arr = historyMap.get(x.name) || [];
-          arr.push({
-            label: r.date || r.id,
+          const out = getAdj(cur, pts);
+          const next = Math.max(0, round1(cur + out.adj));
+          current.set(m.name, next);
+
+          history.get(m.name).push({
             roundId: r.id,
+            roundLabel: r.id,
             course: r.course || "",
-            pts: x.stablefordPoints,
-            adj: (x.stablefordPoints == null ? null : adj),
-            hcap: curMap.get(x.name)
+            pts: Number(pts),
+            band: out.band,
+            adj: out.adj,
+            newHcap: next
           });
-          historyMap.set(x.name, arr);
         }
       }
 
-      return { curMap, historyMap };
+      return { currentHcap: current, history };
     }
 
-    function computeLeague() {
-      const { curMap } = computeCurrentHandicapsWithHistory();
+    function computeLeaderboard(searchText="") {
+      const rankMap = buildRoundRanks();
+      const { currentHcap } = computeHandicapHistoryAndCurrent();
 
-      const rows = DATA.members.map(m => ({
-        name: m.name,
-        role: m.role || "Member",
-        points: 0,
-        played: 0,
-        wins: 0,
-        top3: 0,
-        handicapIndex: curMap.get(m.name) ?? Number(m.startHandicapIndex || 0)
+      // totals from stableford points
+      const totals = new Map(); // name -> { total, played, wins, top3 }
+      for (const m of (DATA.members || [])) {
+        totals.set(m.name, { name: m.name, role: m.role || "Member", total: 0, played: 0, wins: 0, top3: 0 });
+      }
+
+      for (const r of (DATA.rounds || [])) {
+        const rr = rankMap.get(r.id);
+        if (!rr) continue;
+
+        for (const item of rr.ranked) {
+          const t = totals.get(item.name);
+          if (!t) continue;
+          t.total += Number(item.pts);
+          t.played += 1;
+          if (item.pos === 1) t.wins += 1;
+          if (item.pos <= 3) t.top3 += 1;
+        }
+      }
+
+      let rows = Array.from(totals.values()).map(x => ({
+        ...x,
+        total: Math.round(x.total), // stableford are ints
+        handicapIndex: currentHcap.get(x.name) ?? (toNumOrNull(DATA.members.find(m=>m.name===x.name)?.startHandicapIndex) ?? 0)
       }));
 
-      const rowMap = new Map(rows.map(r => [r.name, r]));
+      const q = String(searchText || "").trim().toLowerCase();
+      if (q) rows = rows.filter(r => r.name.toLowerCase().includes(q));
 
-      // scoring
-      const positionPoints = [20,16,14,12,10,8,6,4,2,1];
-      const winBonus = 2, participation = 2, top3Bonus = 1;
-
-      for (const rr of DATA.results) {
-        const name = String(rr.name || "").trim();
-        const row = rowMap.get(name);
-        if (!row) continue;
-
-        row.played += 1;
-        row.points += participation;
-
-        const pos = Number(rr.position);
-        if (Number.isFinite(pos) && pos >= 1) {
-          row.points += Number(positionPoints[pos-1] || 0);
-          if (pos === 1) { row.wins += 1; row.points += winBonus; }
-          if (pos <= 3) { row.top3 += 1; row.points += top3Bonus; }
-        }
-      }
-
-      const q = String($("searchBox")?.value || "").trim().toLowerCase();
-      const filtered = q ? rows.filter(r => r.name.toLowerCase().includes(q)) : rows;
-
-      filtered.sort((a,b) => (b.points-a.points) || (b.wins-a.wins) || a.name.localeCompare(b.name));
-      return filtered.map((r,i) => ({ rank:i+1, ...r }));
+      rows.sort((a,b) => (b.total - a.total) || (b.wins - a.wins) || a.name.localeCompare(b.name));
+      return rows.map((r,i) => ({ rank: i+1, ...r }));
     }
 
-    function leaderboardCardHtml(r, showTop3=false){
+    // =========================
+    // UI rendering
+    // =========================
+    function lbCard(r){
       return `
         <div class="rounded-2xl border border-black/10 bg-white p-4 shadow-sm">
           <div class="flex items-start justify-between gap-3">
@@ -502,11 +572,10 @@
               <div class="text-xs text-slate-500">${escapeHtml(r.role)}</div>
             </div>
             <div class="text-right">
-              <div class="text-xs text-slate-500">Points</div>
-              <div class="text-xl font-bold tabular-nums">${r.points}</div>
+              <div class="text-xs text-slate-500">Total</div>
+              <div class="text-2xl font-bold tabular-nums">${r.total}</div>
             </div>
           </div>
-
           <div class="mt-3 grid grid-cols-3 gap-2 text-sm">
             <div class="rounded-2xl border border-black/10 bg-[var(--paper)] px-3 py-2 text-center">
               <div class="text-xs text-slate-500">Played</div>
@@ -521,102 +590,119 @@
               <div class="font-semibold tabular-nums">${r.handicapIndex}</div>
             </div>
           </div>
-
-          ${showTop3 ? `
-            <div class="mt-3 text-xs text-slate-600">
-              Top-3 finishes: <span class="font-semibold tabular-nums">${r.top3}</span>
-            </div>
-          ` : ``}
         </div>
       `;
     }
 
-    function escapeHtml(s) {
-      return String(s ?? '').replace(/[&<>"']/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[c]));
+    function lbRow(r){
+      return `
+        <tr class="border-t border-black/5 ${r.rank===1 ? "bg-[rgba(27,90,67,.07)]" : ""}">
+          <td class="p-3 font-semibold">${r.rank}</td>
+          <td class="p-3">
+            <div class="font-medium">${escapeHtml(r.name)}</div>
+            <div class="text-xs text-slate-500">${escapeHtml(r.role)}</div>
+          </td>
+          <td class="p-3 text-right font-semibold tabular-nums">${r.total}</td>
+          <td class="p-3 text-right tabular-nums">${r.played}</td>
+          <td class="p-3 text-right tabular-nums">${r.wins}</td>
+          <td class="p-3 text-right tabular-nums">${r.top3}</td>
+          <td class="p-3 text-right tabular-nums">${r.handicapIndex}</td>
+        </tr>
+      `;
     }
 
-    function roundCardHtml(r) {
-      const res = resultsForRound(r.id).sort((a,b)=> (a.position||999)-(b.position||999));
-      const top3 = res.slice(0,3);
+    function roundCard(round, rankMap){
+      const rr = rankMap.get(round.id);
+      const top3 = rr ? rr.ranked.slice(0,3) : [];
+      const winner = top3[0];
 
-      const winner = top3.find(x => x.position === 1) || top3[0] || null;
-      const winnerLine = winner
-        ? `${escapeHtml(winner.name)}${(winner.stablefordPoints!=null ? ` <span class="text-slate-500">(${winner.stablefordPoints} pts)</span>` : ``)}`
-        : `<span class="text-slate-500">—</span>`;
-
-      const top3Html = top3.length ? top3.map(x => {
-        const pts = x.stablefordPoints != null ? ` · ${x.stablefordPoints} pts` : '';
-        return `<li class="flex items-center justify-between gap-3">
-          <span>${x.position ? `#${x.position}` : '#—'} ${escapeHtml(x.name)}</span>
-          <span class="text-slate-500 text-xs tabular-nums">${pts.replace(' · ','')}</span>
-        </li>`;
-      }).join('') : `<li class="text-slate-500">No results yet.</li>`;
+      const topHtml = top3.length ? top3.map(x => `
+        <li class="flex items-center justify-between gap-3">
+          <span class="text-slate-800">#${x.pos} ${escapeHtml(x.name)}</span>
+          <span class="text-slate-500 text-xs tabular-nums">${x.pts} pts</span>
+        </li>
+      `).join("") : `<li class="text-slate-500">No results yet.</li>`;
 
       return `
         <div class="bg-white rounded-2xl shadow-sm border border-black/10 p-5">
           <div class="flex items-start justify-between gap-3">
             <div>
-              <div class="font-bold text-[var(--augusta-900)]">${escapeHtml(r.course || "—")}</div>
-              <div class="text-slate-600 text-sm">${escapeHtml(r.date || "")} • ${escapeHtml(r.format || "")}</div>
+              <div class="font-bold text-[var(--augusta-900)]">${escapeHtml(round.course || "—")}</div>
+              <div class="text-slate-600 text-sm">${escapeHtml(round.date || "")} • ${escapeHtml(round.format || "Stableford")}</div>
             </div>
-            <span class="text-xs px-3 py-1 rounded-2xl bg-[var(--paper)] border border-black/10 text-slate-600">${escapeHtml(r.id)}</span>
+            <span class="text-xs px-3 py-1 rounded-2xl bg-[var(--paper)] border border-black/10 text-slate-600">${escapeHtml(round.id)}</span>
           </div>
 
           <div class="mt-4 rounded-2xl border border-black/10 bg-[var(--paper)] p-4">
             <div class="text-xs text-slate-500">Winner</div>
-            <div class="font-semibold mt-1">${winnerLine}</div>
+            <div class="font-semibold mt-1">
+              ${winner ? `${escapeHtml(winner.name)} <span class="text-slate-500">(${winner.pts} pts)</span>` : `<span class="text-slate-500">—</span>`}
+            </div>
           </div>
 
           <div class="mt-4">
             <div class="text-xs text-slate-500 font-semibold uppercase tracking-wide">Top 3</div>
-            <ul class="mt-2 space-y-2 text-sm text-slate-800">${top3Html}</ul>
+            <ul class="mt-2 space-y-2 text-sm">${topHtml}</ul>
           </div>
         </div>
       `;
     }
 
-    // ===== member modal =====
+    // =========================
+    // Member Modal
+    // =========================
+    function sparkPoints(values, w=120, h=36, pad=6) {
+      if (!values || values.length < 2) return "";
+      const min = Math.min(...values);
+      const max = Math.max(...values);
+      const range = (max - min) || 1;
+      const xStep = (w - pad*2) / (values.length - 1);
+      return values.map((v, i) => {
+        const x = pad + i * xStep;
+        const y = pad + (h - pad*2) * (1 - ((v - min) / range));
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+      }).join(" ");
+    }
+
     function openMemberModal(name) {
-      const member = DATA.members.find(m => m.name === name);
-      const leagueRows = computeLeague();
-      const row = leagueRows.find(r => r.name === name);
+      const nm = normName(name);
+      const member = (DATA.members || []).find(m => m.name === nm);
+      if (!member) return;
 
-      const { curMap, historyMap } = computeCurrentHandicapsWithHistory();
-      const hist = historyMap.get(name) || [];
-      const curHcap = curMap.get(name) ?? Number(member?.startHandicapIndex || 0);
+      const league = computeLeaderboard($("searchBox")?.value || "");
+      const row = league.find(r => r.name === nm);
 
-      $("mmName").textContent = name;
-      $("mmRole").textContent = member?.role ? member.role : "Member";
-      $("mmHcap").textContent = String(curHcap);
+      const { currentHcap, history } = computeHandicapHistoryAndCurrent();
+      const hist = history.get(nm) || [];
+      const cur = currentHcap.get(nm) ?? toNumOrNull(member.startHandicapIndex) ?? 0;
 
-      const stats = row
-        ? `Points: ${row.points} · Played: ${row.played} · Wins: ${row.wins} · Top-3: ${row.top3}`
-        : "—";
-      $("mmStats").textContent = stats;
+      $("mmName").textContent = nm;
+      $("mmRole").textContent = member.role || "Member";
+      $("mmTotal").textContent = row ? row.total : "0";
+      $("mmHcap").textContent = String(cur);
 
-      // history table
+      // sparkline values (handicap after each step)
+      const vals = hist.map(x => Number(x.newHcap)).filter(v => Number.isFinite(v));
+      $("mmSparkLine").setAttribute("points", sparkPoints(vals));
+      $("mmSparkHint").textContent = vals.length ? `Start ${vals[0]} → Now ${vals[vals.length-1]}` : "—";
+
+      // table rows
       $("mmBody").innerHTML = hist.map((h, idx) => {
-        const isStart = idx === 0;
         const adj = (h.adj == null) ? "—" : (h.adj >= 0 ? `+${h.adj}` : `${h.adj}`);
         const pts = (h.pts == null) ? "—" : h.pts;
+        const band = (h.band == null) ? "—" : h.band;
+        const label = (idx === 0) ? "Start" : (h.roundId || h.roundLabel || "");
         return `
           <tr class="text-sm">
-            <td class="p-3">${escapeHtml(isStart ? "Start" : (h.label || h.roundId || ""))}</td>
+            <td class="p-3">${escapeHtml(label)}</td>
             <td class="p-3">${escapeHtml(h.course || "—")}</td>
             <td class="p-3 text-right tabular-nums">${pts}</td>
+            <td class="p-3 text-right tabular-nums">${band}</td>
             <td class="p-3 text-right tabular-nums">${adj}</td>
-            <td class="p-3 text-right font-semibold tabular-nums">${h.hcap}</td>
+            <td class="p-3 text-right font-semibold tabular-nums">${h.newHcap}</td>
           </tr>
         `;
       }).join("");
-
-      // sparkline from handicap values
-      const values = hist.map(x => Number(x.hcap)).filter(v => Number.isFinite(v));
-      const hint = values.length ? `Start ${values[0]} → Now ${values[values.length-1]}` : "—";
-      $("mmSparkHint").textContent = hint;
-
-      const points = sparkPoints(values, 120, 36, 6);
-      $("mmSparkLine").setAttribute("points", points);
 
       $("memberModal").classList.remove("hidden");
       $("memberModal").classList.add("flex");
@@ -629,160 +715,132 @@
       document.body.style.overflow = "";
     }
 
-    function sparkPoints(values, w, h, pad) {
-      if (!values || values.length < 2) return "";
-      const min = Math.min(...values);
-      const max = Math.max(...values);
-      const range = (max - min) || 1;
-
-      const xStep = (w - pad*2) / (values.length - 1);
-      return values.map((v, i) => {
-        const x = pad + i * xStep;
-        // invert y because SVG origin top-left
-        const y = pad + (h - pad*2) * (1 - ((v - min) / range));
-        return `${x.toFixed(1)},${y.toFixed(1)}`;
-      }).join(" ");
-    }
-
-    // ===== render =====
+    // =========================
+    // Render
+    // =========================
     function render() {
-      const cfg = Object.fromEntries(DATA.config.map(x => [x.key, x.value]));
-      $("seasonLabel").textContent = cfg.seasonLabel || "Season";
-      $("statMembers").textContent = DATA.members.length;
-      $("statRounds").textContent = DATA.rounds.length;
-      $("statNext").textContent = cfg["upcoming.date"] || "—";
+      const cfg = getCfg();
 
+      $("seasonLabel").textContent = cfg.seasonLabel || "Season";
+      $("statMembers").textContent = String((DATA.members || []).length);
+      $("statRounds").textContent = String((DATA.rounds || []).length);
+      $("statResults").textContent = String((DATA.results || []).length);
+
+      // upcoming from config
       $("upTitle").textContent = cfg["upcoming.title"] || "—";
       $("upWhen").textContent = `${cfg["upcoming.date"] || "—"} • ${cfg["upcoming.time"] || "—"}`;
       $("upWhere").innerHTML = `<span class="font-semibold">Location:</span> ${escapeHtml(cfg["upcoming.course"] || "—")}, ${escapeHtml(cfg["upcoming.location"] || "—")}`;
       $("upFormat").innerHTML = `<span class="font-semibold">Format:</span> ${escapeHtml(cfg["upcoming.format"] || "Stableford")}`;
       $("upNotes").textContent = cfg["upcoming.notes"] || "";
 
-      const league = computeLeague();
+      const q = $("searchBox")?.value || "";
+      const league = computeLeaderboard(q);
 
-      // tables/cards
-      $("leaderboardBodyHome").innerHTML = league.map(r => `
-        <tr class="border-t border-black/5 ${r.rank===1?"bg-[rgba(27,90,67,.07)]":""}">
-          <td class="p-3 font-semibold">${r.rank}</td>
-          <td class="p-3"><div class="font-medium">${escapeHtml(r.name)}</div><div class="text-xs text-slate-500">${escapeHtml(r.role)}</div></td>
-          <td class="p-3 text-right font-semibold tabular-nums">${r.points}</td>
-          <td class="p-3 text-right tabular-nums">${r.played}</td>
-          <td class="p-3 text-right tabular-nums">${r.wins}</td>
-          <td class="p-3 text-right tabular-nums">${r.handicapIndex}</td>
-        </tr>`).join("");
+      // leaderboard home
+      $("lbCardsHome").innerHTML = league.map(lbCard).join("");
+      $("lbTableHome").innerHTML = league.map(lbRow).join("");
 
-      $("leaderboardCardsHome").innerHTML = league.map(r => leaderboardCardHtml(r, false)).join("");
+      // leaderboard page
+      $("lbCards").innerHTML = league.map(lbCard).join("");
+      $("lbTable").innerHTML = league.map(lbRow).join("");
 
-      $("leaderboardBody").innerHTML = league.map(r => `
-        <tr class="border-t border-black/5 ${r.rank===1?"bg-[rgba(27,90,67,.07)]":""}">
-          <td class="p-3 font-semibold">${r.rank}</td>
-          <td class="p-3"><div class="font-medium">${escapeHtml(r.name)}</div><div class="text-xs text-slate-500">${escapeHtml(r.role)}</div></td>
-          <td class="p-3 text-right font-semibold tabular-nums">${r.points}</td>
-          <td class="p-3 text-right tabular-nums">${r.played}</td>
-          <td class="p-3 text-right tabular-nums">${r.wins}</td>
-          <td class="p-3 text-right tabular-nums">${r.handicapIndex}</td>
-          <td class="p-3 text-right tabular-nums">${r.top3}</td>
-        </tr>`).join("");
-
-      $("leaderboardCards").innerHTML = league.map(r => leaderboardCardHtml(r, true)).join("");
-
-      // ROUNDS upgraded (winner + top 3)
-      $("roundsGrid").innerHTML = DATA.rounds
+      // rounds page
+      const rankMap = buildRoundRanks();
+      $("roundsGrid").innerHTML = (DATA.rounds || [])
         .slice()
-        .sort((a,b)=>new Date(b.date)-new Date(a.date))
-        .map(r => roundCardHtml(r))
-        .join("") || "<div class='text-slate-500'>No rounds yet.</div>";
+        .sort((a,b)=> new Date(b.date) - new Date(a.date))
+        .map(r => roundCard(r, rankMap))
+        .join("") || `<div class="text-slate-500">No rounds yet.</div>`;
 
-      // MEMBERS clickable
-      $("membersGrid").innerHTML = DATA.members.map(m => `
+      // members grid (clickable)
+      $("membersGrid").innerHTML = (DATA.members || []).map(m => `
         <button type="button" data-member="${escapeHtml(m.name)}" class="text-left bg-white p-4 rounded-2xl shadow-sm border border-black/10 hover:bg-black/5">
           <div class="font-semibold truncate text-[var(--augusta-900)]">${escapeHtml(m.name)}</div>
           <div class="text-sm text-slate-600">${escapeHtml(m.role || "Member")}</div>
-          <div class="mt-2 text-xs text-[var(--augusta-700)]">Tap to view profile</div>
+          <div class="mt-2 text-xs text-[var(--augusta-700)]">Tap to view history</div>
         </button>
       `).join("");
 
-      // bind member clicks
       document.querySelectorAll("[data-member]").forEach(btn => {
         btn.addEventListener("click", () => openMemberModal(btn.getAttribute("data-member")));
       });
 
-      // honours
-      const leagueWins = DATA.honours.filter(h => String(h.type).toLowerCase() === "league");
-      const majors = DATA.honours.filter(h => String(h.type).toLowerCase() === "major");
-      const fun = DATA.honours.filter(h => String(h.type).toLowerCase() === "fun");
-
-      $("honoursLeague").innerHTML = leagueWins.map(x => `<li>${escapeHtml(x.year)} — ${escapeHtml(x.winner)}</li>`).join("");
-      $("honoursMajors").innerHTML = majors.map(x => `<li>${escapeHtml(x.title)} ${escapeHtml(x.year)} — ${escapeHtml(x.winner)}</li>`).join("");
-      $("honoursFun").innerHTML = fun.map(x => `<li>${escapeHtml(x.title || x.award)} ${escapeHtml(x.year)} — ${escapeHtml(x.winner)}</li>`).join("");
-
       showPage();
     }
 
+    // =========================
+    // Sync from Sheets
+    // =========================
     async function syncAll() {
-      setStatus("Fetching…", "Loading society data");
+      setStatus("Fetching…", "Loading Google Sheets data");
 
-      const [Members, Rounds, Results, Honours, Config, HandicapRules] = await Promise.all([
+      const [Members, Rounds, Results, Config, HandicapRules] = await Promise.all([
         fetchTab("Members"),
         fetchTab("Rounds"),
         fetchTab("Results"),
-        fetchTab("Honours"),
         fetchTab("Config"),
         fetchTab("HandicapRules"),
       ]);
 
-      DATA.members = Members.map(r => ({
-        name: (r.name || r.Name || "").trim(),
-        role: (r.role || r.Role || "Member").trim(),
-        startHandicapIndex: r.startHandicapIndex || r.startHandicap || r.Handicap || 0
-      })).filter(x => String(x.name).trim() !== "");
+      // Members
+      DATA.members = (Members || []).map(r => ({
+        name: normName(r.name ?? r.Name ?? r.player ?? r.Player ?? ""),
+        role: normName(r.role ?? r.Role ?? "Member") || "Member",
+        startHandicapIndex: toNumOrNull(r.startHandicapIndex ?? r.startHandicap ?? r.Handicap ?? r.handicap ?? 0) ?? 0
+      })).filter(x => x.name);
 
-      DATA.rounds = Rounds.map(r => ({
-        id: (r.id || r.ID || r.roundId || r.RoundId || "").trim(),
-        date: (r.date || r.Date || "").trim(),
-        course: (r.course || r.Course || "").trim(),
-        format: (r.format || r.Format || "Stableford").trim()
-      })).filter(x => String(x.id).trim() !== "");
+      // Rounds
+      DATA.rounds = (Rounds || []).map(r => ({
+        id: normRoundId(r.id ?? r.ID ?? r.roundId ?? r.RoundId ?? ""),
+        date: String(r.date ?? r.Date ?? "").trim(),
+        course: normName(r.course ?? r.Course ?? ""),
+        format: normName(r.format ?? r.Format ?? "Stableford") || "Stableford"
+      })).filter(x => x.id);
 
-      DATA.results = Results.map(r => ({
-        roundId: (r.roundId || r.RoundId || "").trim(),
-        name: (r.name || r.Name || "").trim(),
-        position: r.position || r.Position || "",
-        stablefordPoints: r.stablefordPoints || r.StablefordPoints || r.points || r.Points || ""
-      })).filter(x => String(x.roundId).trim() && String(x.name).trim());
+      // Results (IGNORE position completely — we always rank from score)
+      DATA.results = (Results || []).map(r => ({
+        roundId: normRoundId(r.roundId ?? r.RoundId ?? r.round ?? r.Round ?? ""),
+        name: normName(r.name ?? r.Name ?? r.player ?? r.Player ?? ""),
+        stablefordPoints: toNumOrNull(r.stablefordPoints ?? r.StablefordPoints ?? r.points ?? r.Points ?? r.score ?? r.Score)
+      })).filter(x => x.roundId && x.name);
 
-      DATA.honours = Honours;
-      DATA.config = Config.map(r => ({ key: (r.key || r.Key || "").trim(), value: (r.value || r.Value || "") })).filter(x => x.key);
-      DATA.rules = HandicapRules;
+      // Config
+      DATA.config = (Config || []).map(r => ({
+        key: String(r.key ?? r.Key ?? "").trim(),
+        value: String(r.value ?? r.Value ?? "")
+      })).filter(x => x.key);
 
-      // handicap lookup
+      // Handicap rules -> lookup
       adjLookup = new Map();
-      for (const r of HandicapRules) {
-        const band = Number(r.band || r.Band);
-        const score = Number(r.score || r.Score);
-        const adj = Number(r.adjustment || r.Adjustment);
-        if (Number.isFinite(band) && Number.isFinite(score) && Number.isFinite(adj)) {
-          adjLookup.set(`${band}:${Math.trunc(score)}`, adj);
-        }
+      for (const r of (HandicapRules || [])) {
+        const band = toNumOrNull(r.band ?? r.Band);
+        const score = toNumOrNull(r.score ?? r.Score);
+        const adj  = toNumOrNull(r.adjustment ?? r.Adjustment ?? r.adj ?? r.Adj);
+        if (band == null || score == null || adj == null) continue;
+        adjLookup.set(`${Math.trunc(band)}:${Math.trunc(score)}`, Number(adj));
       }
 
-      setStatus("Loaded ✅", `Members ${DATA.members.length} · Rounds ${DATA.rounds.length}`);
+      // Basic validation hint
+      const missingRules = adjLookup.size === 0;
+      const detail = `Members ${DATA.members.length} · Rounds ${DATA.rounds.length} · Results ${DATA.results.length}` + (missingRules ? " · ⚠ No handicap rules found" : "");
+      setStatus("Loaded ✅", detail);
+
       render();
     }
 
-    // events
+    // =========================
+    // Events
+    // =========================
     window.addEventListener("hashchange", showPage);
     document.querySelectorAll(".navLink").forEach(a => a.addEventListener("click", () => setTimeout(showPage, 0)));
 
     $("btnRefresh").addEventListener("click", () => syncAll().catch(err => setStatus("Error ❌", String(err))));
+    $("btnRefreshTop").addEventListener("click", () => syncAll().catch(err => setStatus("Error ❌", String(err))));
     $("searchBox").addEventListener("input", render);
     $("btnReset").addEventListener("click", () => { $("searchBox").value=""; render(); });
 
-    // modal events
     $("mmClose").addEventListener("click", closeMemberModal);
-    $("memberModal").addEventListener("click", (e) => {
-      if (e.target === $("memberModal")) closeMemberModal();
-    });
+    $("memberModal").addEventListener("click", (e) => { if (e.target === $("memberModal")) closeMemberModal(); });
     window.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && !$("memberModal").classList.contains("hidden")) closeMemberModal();
     });
