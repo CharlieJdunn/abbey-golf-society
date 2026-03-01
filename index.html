@@ -772,61 +772,98 @@
     // Sync from Sheets
     // =========================
     async function syncAll() {
-      setStatus("Fetching…", "Loading Google Sheets data");
+  setStatus("Fetching…", "Loading Google Sheets data");
 
-      const [Members, Rounds, Results, Config, HandicapRules] = await Promise.all([
-        fetchTab("Members"),
-        fetchTab("Rounds"),
-        fetchTab("Results"),
-        fetchTab("Config"),
-        fetchTab("HandicapRules"),
-      ]);
+  const [Members, Rounds, Results, Config, HandicapRules] = await Promise.all([
+    fetchTab("Members"),
+    fetchTab("Rounds"),
+    fetchTab("Results"),
+    fetchTab("Config"),
+    fetchTab("HandicapRules"),
+  ]);
 
-      // Members
-      DATA.members = (Members || []).map(r => ({
-        name: normName(r.name ?? r.Name ?? r.player ?? r.Player ?? ""),
-        role: normName(r.role ?? r.Role ?? "Member") || "Member",
-        startHandicapIndex: toNumOrNull(r.startHandicapIndex ?? r.startHandicap ?? r.Handicap ?? r.handicap ?? 0) ?? 0
-      })).filter(x => x.name);
+  // =========================
+  // Members
+  // =========================
+  DATA.members = (Members || []).map(r => ({
+    name: normName(r.name ?? r.Name ?? r.player ?? r.Player ?? ""),
+    role: normName(r.role ?? r.Role ?? "Member") || "Member",
+    startHandicapIndex: toNumOrNull(
+      r.startHandicapIndex ?? r.startHandicap ?? r.Handicap ?? r.handicap ?? 0
+    ) ?? 0
+  })).filter(x => x.name);
 
-      // Rounds
-      DATA.rounds = (Rounds || []).map(r => ({
-        id: normRoundId(r.id ?? r.ID ?? r.roundId ?? r.RoundId ?? ""),
-        date: String(r.date ?? r.Date ?? "").trim(),
-        course: normName(r.course ?? r.Course ?? ""),
-        format: normName(r.format ?? r.Format ?? "Stableford") || "Stableford"
-      })).filter(x => x.id);
+  // =========================
+  // Rounds
+  // =========================
+  DATA.rounds = (Rounds || []).map(r => ({
+    id: normRoundId(r.id ?? r.ID ?? r.roundId ?? r.RoundId ?? ""),
+    date: String(r.date ?? r.Date ?? "").trim(),
+    course: normName(r.course ?? r.Course ?? ""),
+    format: normName(r.format ?? r.Format ?? "Stableford") || "Stableford"
+  })).filter(x => x.id);
 
-      // Results (IGNORE position completely — we always rank from score)
-      DATA.results = (Results || []).map(r => ({
-        roundId: normRoundId(r.roundId ?? r.RoundId ?? r.round ?? r.Round ?? ""),
-        name: normName(r.name ?? r.Name ?? r.player ?? r.Player ?? ""),
-        stablefordPoints: toNumOrNull(r.stablefordPoints ?? r.StablefordPoints ?? r.points ?? r.Points ?? r.score ?? r.Score)
-      })).filter(x => x.roundId && x.name);
+  // =========================
+  // Results (positions ignored — we rank from score)
+  // =========================
+  DATA.results = (Results || []).map(r => ({
+    roundId: normRoundId(r.roundId ?? r.RoundId ?? r.round ?? r.Round ?? ""),
+    name: normName(r.name ?? r.Name ?? r.player ?? r.Player ?? ""),
+    stablefordPoints: toNumOrNull(
+      r.stablefordPoints ?? r.StablefordPoints ?? r.points ?? r.Points ?? r.score ?? r.Score
+    )
+  })).filter(x => x.roundId && x.name);
 
-      // Config
-      DATA.config = (Config || []).map(r => ({
-        key: String(r.key ?? r.Key ?? "").trim(),
-        value: String(r.value ?? r.Value ?? "")
-      })).filter(x => x.key);
+  // =========================
+  // Config
+  // =========================
+  DATA.config = (Config || []).map(r => ({
+    key: String(r.key ?? r.Key ?? "").trim(),
+    value: String(r.value ?? r.Value ?? "")
+  })).filter(x => x.key);
 
-      // Handicap rules -> lookup
-      adjLookup = new Map();
-      for (const r of (HandicapRules || [])) {
-        const band = toNumOrNull(r.band ?? r.Band);
-        const score = toNumOrNull(r.score ?? r.Score);
-        const adj  = toNumOrNull(r.adjustment ?? r.Adjustment ?? r.adj ?? r.Adj);
-        if (band == null || score == null || adj == null) continue;
-        adjLookup.set(`${Math.trunc(band)}:${Math.trunc(score)}`, Number(adj));
-      }
+  // =========================
+  // Handicap Rules (ROBUST PARSER)
+  // =========================
+  adjLookup = new Map();
 
-      // Basic validation hint
-      const missingRules = adjLookup.size === 0;
-      const detail = `Members ${DATA.members.length} · Rounds ${DATA.rounds.length} · Results ${DATA.results.length}` + (missingRules ? " · ⚠ No handicap rules found" : "");
-      setStatus("Loaded ✅", detail);
-
-      render();
+  function pick(r, keys){
+    for (const k of keys) {
+      if (r[k] != null && String(r[k]).trim() !== "") return r[k];
     }
+    return null;
+  }
+
+  for (const r of (HandicapRules || [])) {
+
+    const bandRaw = pick(r, ["band","Band","BAND"]);
+    const scoreRaw = pick(r, ["score","Score","SCORE"]);
+    const adjRaw  = pick(r, ["adjustment","Adjustment","ADJUSTMENT","adj","Adj","delta","Delta"]);
+
+    const band = Number(String(bandRaw ?? "").trim());
+    const score = Number(String(scoreRaw ?? "").trim());
+    const adj = Number(String(adjRaw ?? "").trim());
+
+    if (!Number.isFinite(band) || !Number.isFinite(score) || !Number.isFinite(adj)) {
+      continue;
+    }
+
+    adjLookup.set(`${Math.trunc(band)}:${Math.trunc(score)}`, adj);
+  }
+
+  // =========================
+  // Final Status
+  // =========================
+  const detail = `Members ${DATA.members.length} · Rounds ${DATA.rounds.length} · Results ${DATA.results.length} · Rules ${adjLookup.size}`;
+
+  if (adjLookup.size === 0) {
+    setStatus("Loaded ⚠", detail + " · HandicapRules not loading");
+  } else {
+    setStatus("Loaded ✅", detail);
+  }
+
+  render();
+}
 
     // =========================
     // Events
